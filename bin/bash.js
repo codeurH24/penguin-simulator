@@ -12,12 +12,12 @@ import {
     executeBuiltin, 
     isBuiltinCommand,
     getBuiltinCommands 
-} from './bash-builtins.js';
+} from '../lib/bash-builtins.js';
 import { 
     handleVariableAssignment, 
     substituteVariablesInArgs,
     isVariableAssignment 
-} from './bash-variables.js';
+} from '../lib/bash-variables.js';
 import { 
     parseCommandLine, 
     parseRedirections,
@@ -25,7 +25,7 @@ import {
     handleInputRedirection,
     validateRedirections,
     separateRedirections 
-} from './bash-parser.js';
+} from '../lib/bash-parser.js';
 
 /**
  * Exécute une commande avec capture de sortie
