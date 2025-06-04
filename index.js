@@ -42,6 +42,8 @@ function createDirectoryEntry() {
     };
 }
 
+
+
 /**
  * Crée le contexte pour les variables d'environnement
  * @returns {Object} - Contexte avec variables d'environnement
@@ -133,7 +135,7 @@ async function initTerminal() {
     updatePrompt(currentPath, createContext());
 
     // Configurer les gestionnaires d'événements
-    setupCommandHistory(handleHistoryUp, handleHistoryDown);
+    setupCommandHistory(handleHistoryUp, handleHistoryDown, createContext);
     setupEnterHandler(handleEnterPressed);
 
     // Initialiser la base de données
