@@ -12,8 +12,12 @@ import { showError, showSuccess } from '../modules/terminal.js';
 export function cmdMkdir(args, context) {
     const { fileSystem, currentPath, saveFileSystem } = context;
     
+    // Utiliser les fonctions du contexte si disponibles, sinon celles par défaut
+    const errorFn = context?.showError || showError;
+    const successFn = context?.showSuccess || showSuccess;
+    
     if (args.length === 0) {
-        showError('mkdir: nom de dossier manquant');
+        errorFn('mkdir: nom de dossier manquant');
         return;
     }
 
@@ -27,7 +31,7 @@ export function cmdMkdir(args, context) {
     }
 
     if (dirArgs.length === 0) {
-        showError('mkdir: nom de dossier manquant');
+        errorFn('mkdir: nom de dossier manquant');
         return;
     }
 
@@ -36,7 +40,7 @@ export function cmdMkdir(args, context) {
 
         if (fileSystem[fullPath]) {
             if (!createParents) {
-                showError(`mkdir: ${dirName}: Le dossier existe déjà`);
+                errorFn(`mkdir: ${dirName}: Le dossier existe déjà`);
             }
         } else {
             // Créer les répertoires parents si nécessaire
@@ -50,16 +54,16 @@ export function cmdMkdir(args, context) {
                         fileSystem[currentDir] = createDirectoryEntry();
                     }
                 }
-                showSuccess(`Dossier '${dirName}' créé (avec parents)`);
+                successFn(`Dossier '${dirName}' créé (avec parents)`);
             } else {
                 // Vérifier que le parent existe
                 const parentPath = getDirname(fullPath);
                 if (!fileSystem[parentPath]) {
-                    showError(`mkdir: ${dirName}: Le répertoire parent n'existe pas`);
+                    errorFn(`mkdir: ${dirName}: Le répertoire parent n'existe pas`);
                     return;
                 }
                 fileSystem[fullPath] = createDirectoryEntry();
-                showSuccess(`Dossier '${dirName}' créé`);
+                successFn(`Dossier '${dirName}' créé`);
             }
             saveFileSystem();
         }

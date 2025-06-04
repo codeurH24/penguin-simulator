@@ -6,7 +6,12 @@ import { updatePrompt, addLine } from '../modules/terminal.js';
 import { saveData, loadData, isDBReady } from '../modules/storage.js';
 
 // Variables globales internes au module
-let fileSystem = {};
+let fileSystem = {
+    '/': createDirectoryEntry(),
+    '/home': createDirectoryEntry(),
+    '/root': createDirectoryEntry()
+};
+
 let currentPath = '/root';
 let shellVariables = {}; // Variables du shell
 
