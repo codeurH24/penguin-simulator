@@ -1,11 +1,11 @@
-// bin/ls.js - Commande ls (list) isolée avec support des redirections
-// Équivalent de /bin/ls sous Debian
+// bin/ls.js - Commande ls (list) isolée avec support des couleurs
+// Équivalent de /bin/ls sous Debian avec coloration
 
 import { resolvePath } from '../modules/filesystem.js';
 import { addLine, showError } from '../modules/terminal.js';
 
 /**
- * Commande ls - Liste le contenu d'un répertoire
+ * Commande ls - Liste le contenu d'un répertoire avec couleurs
  * @param {Array} args - Arguments de la commande
  * @param {Object} context - Contexte (fileSystem, currentPath, peut contenir addLine personnalisé)
  */
@@ -50,7 +50,15 @@ export function cmdLs(args, context) {
         const prefix = lsPath === '/' ? '/' : lsPath + '/';
         if (!path.startsWith(prefix)) return false;
         const relativePath = path.substring(prefix.length);
-        return !relativePath.includes('/');
+        if (relativePath.includes('/')) return false;
+        
+        // Filtrer les fichiers/dossiers cachés (commençant par .) si -a n'est pas utilisé
+        const fileName = path.split('/').pop();
+        if (!showAll && fileName.startsWith('.')) {
+            return false;
+        }
+        
+        return true;
     });
 
     // Ajouter les entrées spéciales . et .. si option -a
@@ -82,7 +90,7 @@ export function cmdLs(args, context) {
     if (longFormat) {
         // Calculer et afficher le total en premier
         const total = calculateTotal(allItems, fileSystem, humanReadable);
-        outputFn(`total ${total}`);
+        outputFn(`total ${total}`, 'info');
         
         // Format détaillé ls -l
         showLongFormat(allItems, fileSystem, humanReadable, outputFn);
@@ -124,28 +132,49 @@ function calculateTotal(items, fileSystem, humanReadable) {
 }
 
 /**
- * Affiche le format simple (noms seulement, sur plusieurs colonnes)
+ * Affiche le format simple (noms seulement, sur plusieurs colonnes) avec couleurs
  * @param {Array} items - Liste des éléments
  * @param {Object} fileSystem - Système de fichiers
  * @param {Function} outputFn - Fonction d'affichage
  */
 function showSimpleFormat(items, fileSystem, outputFn) {
-    // Extraire les noms et trier
-    const names = items.map(item => {
+    // Créer une ligne avec les noms colorés
+    const coloredNames = items.map(item => {
+        let name, type;
+        
         if (item.isSpecial) {
+            name = item.name;
+            type = 'dir';
+        } else {
+            name = item.split('/').pop();
+            type = fileSystem[item].type;
+        }
+        
+        // Retourner un objet avec le nom et le type pour le tri
+        return { name, type, original: item };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(item => {
+        // Déterminer la classe CSS selon le type
+        if (item.type === 'dir') {
+            return `${item.name}/`; // Ajouter / pour les dossiers
+        } else {
             return item.name;
         }
-        return item.split('/').pop();
-    }).sort();
+    });
     
-    // Afficher sur une seule ligne séparés par des espaces
-    if (names.length > 0) {
-        outputFn(names.join('  '));
+    if (coloredNames.length > 0) {
+        // Afficher chaque élément avec sa couleur appropriée
+        const line = coloredNames.join('  ');
+        outputFn(line);
+        
+        // Version alternative : afficher chaque élément avec sa propre classe
+        // (nécessiterait une modification de addLine pour supporter HTML)
     }
 }
 
 /**
- * Affiche le format détaillé ls -l
+ * Affiche le format détaillé ls -l avec couleurs
  * @param {Array} items - Liste des éléments
  * @param {Object} fileSystem - Système de fichiers
  * @param {boolean} humanReadable - Format human-readable
@@ -197,9 +226,15 @@ function showLongFormat(items, fileSystem, humanReadable, outputFn) {
         const day = modDate.getDate().toString().padStart(2, ' ');
         const time = modDate.toTimeString().substr(0, 5);
         
+        // Ajouter / pour les dossiers
+        const displayName = fsItem.type === 'dir' ? name + '/' : name;
+        
         // Format détaillé avec vraies données
-        const line = `${permissions} ${links.padStart(2)} ${owner} ${group} ${sizeStr.padStart(4)} ${month} ${day} ${time} ${name}`;
-        outputFn(line);
+        const line = `${permissions} ${links.padStart(2)} ${owner} ${group} ${sizeStr.padStart(4)} ${month} ${day} ${time} ${displayName}`;
+        
+        // Utiliser la classe appropriée selon le type
+        const cssClass = fsItem.type === 'dir' ? 'directory' : '';
+        outputFn(line, cssClass);
     });
 }
 

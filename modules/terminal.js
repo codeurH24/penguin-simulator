@@ -76,7 +76,7 @@ export function addLine(text, className = '') {
 }
 
 /**
- * Met à jour l'affichage du prompt
+ * Met à jour l'affichage du prompt avec couleurs Debian
  * @param {string} currentPath - Chemin courant à afficher
  * @param {Object} context - Contexte avec variables d'environnement (optionnel)
  */
@@ -89,7 +89,9 @@ export function updatePrompt(currentPath, context = null) {
     const { user, hostname } = getEnvironmentVars(context);
     const displayPath = currentPath === '/' ? '/' : currentPath;
     const promptSymbol = user === 'root' ? '#' : '$';
-    promptElement.textContent = `${user}@${hostname}:${displayPath}${promptSymbol} `;
+    
+    // Créer le prompt avec HTML coloré style Debian
+    promptElement.innerHTML = `<span style="color: #51cf66; font-weight: bold;">${user}@${hostname}</span><span style="color: #ffffff;">:</span><span style="color: #74c0fc; font-weight: bold;">${displayPath}</span><span style="color: #ffffff;">${promptSymbol}</span> `;
 }
 
 /**
@@ -179,7 +181,7 @@ export function setupEnterHandler(onEnterPressed) {
 }
 
 /**
- * Affiche le prompt avec la commande exécutée
+ * Affiche le prompt avec la commande exécutée (style Debian)
  * @param {string} currentPath - Chemin courant
  * @param {string} command - Commande exécutée
  * @param {Object} context - Contexte avec variables d'environnement (optionnel)
@@ -188,8 +190,15 @@ export function showCommandExecution(currentPath, command, context = null) {
     const { user, hostname } = getEnvironmentVars(context);
     const displayPath = currentPath === '/' ? '/' : currentPath;
     const promptSymbol = user === 'root' ? '#' : '$';
-    const promptText = `${user}@${hostname}:${displayPath}${promptSymbol} `;
-    addLine(promptText + command);
+    
+    // Créer la ligne avec le prompt coloré + commande
+    const line = document.createElement('div');
+    line.className = 'line';
+    line.innerHTML = `<span style="color: #51cf66; font-weight: bold;">${user}@${hostname}</span><span style="color: #ffffff;">:</span><span style="color: #74c0fc; font-weight: bold;">${displayPath}</span><span style="color: #ffffff;">${promptSymbol} ${command}</span>`;
+    
+    const inputContainer = document.querySelector('.input-container');
+    terminal.insertBefore(line, inputContainer);
+    terminal.scrollTop = terminal.scrollHeight;
 }
 
 /**
