@@ -1,5 +1,5 @@
-import { initDB, saveData, loadData, isDBReady } from './modules/storage.js';
-import { initUserSystem, getCurrentUser } from './modules/users.js';
+import { initDB } from './modules/storage.js';
+import { getCurrentUser } from './modules/users.js';
 import { 
     initTerminalElements, 
     addLine, 
@@ -8,117 +8,32 @@ import {
     setupEnterHandler,
     showCommandExecution,
     clearCommandInput,
-    isTerminalReady,
     isPasswordMode,
     handlePasswordInput
 } from './modules/terminal.js';
 import { executeCommand as execCommand } from './bin/bash.js';
-import { initOldPwd } from './lib/bash-variables.js';
+import { createContext, initContext, getCurrentPath } from './core/context.js';
 
-// Variables globales
-let fileSystem = {
-    '/': createDirectoryEntry(),
-    '/home': createDirectoryEntry(),
-    '/root': createDirectoryEntry()
-};
-
-let currentPath = '/root';
+// Variables locales pour l'historique des commandes
 const commandHistory = [];
 let historyIndex = -1;
-let shellVariables = {}; // Variables du shell
 
 /**
- * Crée une entrée de répertoire avec de vraies métadonnées
- * @returns {Object} - Objet répertoire avec métadonnées
+ * Fonction pour exécuter une commande
+ * @param {string} command - Commande à exécuter
  */
-function createDirectoryEntry() {
-    const now = new Date();
-    return {
-        type: 'dir',
-        size: 4096,
-        created: now,
-        modified: now,
-        accessed: now,
-        permissions: 'drwxr-xr-x',
-        owner: 'root',
-        group: 'root',
-        links: 2
-    };
-}
-
-/**
- * Crée le contexte pour les variables d'environnement
- * @returns {Object} - Contexte avec variables d'environnement et informations utilisateur
- */
-function createContext() {
-    const currentUser = getCurrentUser();
-    return {
-        fileSystem,
-        currentPath,
-        setCurrentPath,
-        saveFileSystem,
-        variables: shellVariables,
-        currentUser
-    };
-}
-
-// Fonction pour sauvegarder le système de fichiers
-async function saveFileSystem() {
-    if (isDBReady()) {
-        await saveData({ fileSystem, currentPath, variables: shellVariables });
-    }
-}
-
-// Fonction pour charger le système de fichiers
-async function loadFileSystem() {
-    const data = await loadData();
-    if (data) {
-        fileSystem = data.fileSystem;
-        currentPath = data.currentPath;
-        shellVariables = data.variables || {};
-        
-        // S'assurer qu'OLDPWD est initialisé après le chargement
-        if (!shellVariables.OLDPWD) {
-            shellVariables.OLDPWD = currentPath;
-        }
-        
-        // IMPORTANT: S'assurer que les fichiers système existent après le chargement
-        if (!fileSystem['/etc/passwd']) {
-            console.log('Fichiers système manquants après chargement, re-initialisation...');
-            initUserSystem(fileSystem);
-        }
-        
-        updatePrompt(currentPath, createContext());
-        addLine('📂 Données restaurées depuis la dernière session', 'prompt');
-    } else {
-        // Première fois - initialiser les fichiers système et OLDPWD
-        initUserSystem(fileSystem);
-        shellVariables.OLDPWD = currentPath;
-        addLine('🆕 Nouveau système initialisé', 'prompt');
-    }
-}
-
-// Fonction pour changer le répertoire courant
-function setCurrentPath(newPath) {
-    const oldPath = currentPath;
-    currentPath = newPath;
-    
-    // Mettre à jour OLDPWD
-    shellVariables.OLDPWD = oldPath;
-    
-    updatePrompt(currentPath, createContext());
-}
-
-// Fonction pour exécuter une commande
 function executeCommand(command) {
     const context = createContext();
-    showCommandExecution(currentPath, command, context);
+    showCommandExecution(getCurrentPath(), command, context);
 
     // Déléguer l'exécution au module commands
     execCommand(command, context);
 }
 
-// Fonction pour naviguer vers le haut dans l'historique
+/**
+ * Fonction pour naviguer vers le haut dans l'historique
+ * @returns {string|undefined} - Commande précédente ou undefined
+ */
 function handleHistoryUp() {
     if (historyIndex > 0) {
         historyIndex--;
@@ -127,7 +42,10 @@ function handleHistoryUp() {
     return undefined;
 }
 
-// Fonction pour naviguer vers le bas dans l'historique
+/**
+ * Fonction pour naviguer vers le bas dans l'historique
+ * @returns {string} - Commande suivante ou chaîne vide
+ */
 function handleHistoryDown() {
     if (historyIndex < commandHistory.length - 1) {
         historyIndex++;
@@ -138,7 +56,10 @@ function handleHistoryDown() {
     }
 }
 
-// Fonction pour gérer l'appui sur Entrée
+/**
+ * Fonction pour gérer l'appui sur Entrée
+ * @param {string} command - Commande tapée
+ */
 function handleEnterPressed(command) {
     // Vérifier si on est en mode saisie de mot de passe
     if (isPasswordMode()) {
@@ -162,7 +83,17 @@ function handleEnterPressed(command) {
     clearCommandInput();
 }
 
-// Initialisation asynchrone
+/**
+ * Fonction qui retourne le contexte actuel (pour l'autocomplétion)
+ * @returns {Object} - Contexte actuel
+ */
+function getContextForCompletion() {
+    return createContext();
+}
+
+/**
+ * Initialisation asynchrone du terminal
+ */
 async function initTerminal() {
     // Initialiser les éléments DOM du terminal
     try {
@@ -173,33 +104,16 @@ async function initTerminal() {
     }
 
     // Initialiser la base de données AVANT tout
-    const dbSuccess = await initDB();
-    if (dbSuccess) {
-        await loadFileSystem(); // Ceci va aussi initialiser les fichiers système si nécessaire
-        addLine('💾 IndexedDB connecté - persistance activée', 'prompt');
-    } else {
-        // Si pas de DB, initialiser quand même les fichiers système et OLDPWD
-        initUserSystem(fileSystem);
-        shellVariables.OLDPWD = currentPath;
-        addLine('⚠️ IndexedDB indisponible - mode mémoire', 'error');
-    }
+    await initDB();
     
-    // Vérification finale que les fichiers système existent
-    if (!fileSystem['/etc/passwd']) {
-        console.error('ERREUR: /etc/passwd manquant, re-initialisation forcée');
-        initUserSystem(fileSystem);
-    }
-    
-    // S'assurer qu'OLDPWD est toujours initialisé
-    if (!shellVariables.OLDPWD) {
-        shellVariables.OLDPWD = currentPath;
-    }
+    // Initialiser le contexte (gère tout en interne)
+    await initContext();
     
     addLine('👥 Système d\'utilisateurs prêt', 'prompt');
     
     // Configurer le prompt et les gestionnaires d'événements
-    updatePrompt(currentPath, createContext());
-    setupCommandHistory(handleHistoryUp, handleHistoryDown, createContext);
+    updatePrompt(getCurrentPath(), createContext());
+    setupCommandHistory(handleHistoryUp, handleHistoryDown, getContextForCompletion);
     setupEnterHandler(handleEnterPressed);
     
     // Message de bienvenue
@@ -212,13 +126,12 @@ async function initTerminal() {
     addLine('   Utilisez Échap pour annuler la saisie de mot de passe', 'info');
     
     // Debug: vérifier que les fichiers système sont bien là
+    const context = createContext();
     console.log('Fichiers système créés:', {
-        passwd: !!fileSystem['/etc/passwd'],
-        shadow: !!fileSystem['/etc/shadow'],
-        group: !!fileSystem['/etc/group']
+        passwd: !!context.fileSystem['/etc/passwd'],
+        shadow: !!context.fileSystem['/etc/shadow'],
+        group: !!context.fileSystem['/etc/group']
     });
-    
-    console.log('Variables shell initialisées:', shellVariables);
 }
 
 // Lancer l'initialisation
