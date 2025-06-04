@@ -151,13 +151,12 @@ function handleTabCompletion(input, context) {
         
         let dirPath, filePart;
         if (lastSlash >= 0) {
-            dirPath = resolvePathForCompletion(pathPart.substring(0, lastSlash + 1), currentPath);
+            dirPath = resolvePathForCompletion(pathPart.substring(0, lastSlash), currentPath);
             filePart = pathPart.substring(lastSlash + 1);
         } else {
             dirPath = currentPath;
             filePart = pathPart;
         }
-        
         const files = getAvailableFiles(dirPath, fileSystem).filter(file => 
             file.startsWith(filePart)
         );
