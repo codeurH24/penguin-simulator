@@ -1,4 +1,4 @@
-// bin/passwd.js - Commande passwd avec vérification immédiate de l'ancien mot de passe
+// bin/passwd.js - Commande passwd avec vérification immédiate de l'ancien mot de passe (3 tentatives)
 // Équivalent de /usr/bin/passwd sous Debian
 
 import { changePassword, getCurrentUser, getUserInfo, isRoot } from '../modules/users.js';
@@ -6,6 +6,7 @@ import { showError, showSuccess, addLine, startPasswordInput } from '../modules/
 
 /**
  * Commande passwd - Change le mot de passe d'un utilisateur
+ * Comme dans un vrai système Unix/Linux, l'utilisateur a 3 tentatives pour saisir l'ancien mot de passe
  * @param {Array} args - Arguments de la commande
  * @param {Object} context - Contexte (fileSystem, saveFileSystem)
  */
@@ -88,10 +89,11 @@ export function cmdPasswd(args, context) {
             showSuccess('⚠️  Attention: connexion sans mot de passe possible');
             
         } else {
-            // Changer le mot de passe
+            // Changer le mot de passe - ici la magie des 3 tentatives opère via terminal.js
             const requireOldPassword = (targetUsername === currentUser.username) && !isRoot();
             
             // Créer la fonction de vérification de l'ancien mot de passe
+            // Cette fonction sera appelée jusqu'à 3 fois par terminal.js en cas d'échec
             const verifyOldPasswordCallback = requireOldPassword ? 
                 (username, oldPassword) => verifyOldPassword(username, oldPassword, fileSystem) : 
                 null;
@@ -101,7 +103,7 @@ export function cmdPasswd(args, context) {
                 requireOldPassword, 
                 verifyOldPasswordCallback,
                 (oldPassword, newPassword) => {
-                    // Cette fonction sera appelée SEULEMENT si tout est validé
+                    // Cette fonction sera appelée SEULEMENT si tout est validé (3 tentatives max)
                     handlePasswordChangeSuccess(targetUsername, oldPassword, newPassword, fileSystem, saveFileSystem);
                 }
             );
@@ -128,8 +130,8 @@ function handlePasswordChangeSuccess(targetUsername, oldPassword, newPassword, f
             return;
         }
         
-        // À ce stade, l'ancien mot de passe a déjà été vérifié par le terminal
-        addLine(`[DEBUG] Changement du mot de passe validé`, 'info');
+        // À ce stade, l'ancien mot de passe a déjà été vérifié par le terminal (jusqu'à 3 fois)
+        addLine(`[DEBUG] Changement du mot de passe validé après vérification`, 'info');
         
         // Changer le mot de passe
         changePassword(targetUsername, newPassword, fileSystem, saveFileSystem);
@@ -137,7 +139,7 @@ function handlePasswordChangeSuccess(targetUsername, oldPassword, newPassword, f
         addLine('', '');
         showSuccess(`passwd: mot de passe mis à jour avec succès`);
         
-        // Affichage pour test
+        // Affichage pour test/debug
         addLine(`[TEST] Nouveau mot de passe: "${newPassword}"`, 'info');
         
     } catch (error) {
@@ -147,6 +149,7 @@ function handlePasswordChangeSuccess(targetUsername, oldPassword, newPassword, f
 
 /**
  * Vérifie si l'ancien mot de passe est correct
+ * Cette fonction sera appelée jusqu'à 3 fois par terminal.js
  * @param {string} username - Nom d'utilisateur
  * @param {string} oldPassword - Ancien mot de passe à vérifier
  * @param {Object} fileSystem - Système de fichiers

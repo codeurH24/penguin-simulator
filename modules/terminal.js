@@ -16,9 +16,11 @@ let passwordMode = {
     confirmPassword: '',
     username: '',
     requireOldPassword: false,
-    verifyOldPasswordCallback: null, // Nouvelle fonction pour vérifier immédiatement
+    verifyOldPasswordCallback: null,
     callback: null,
-    originalPrompt: ''
+    originalPrompt: '',
+    attempts: 0, // Nouveau: compteur de tentatives
+    maxAttempts: 3 // Nouveau: nombre maximum de tentatives
 };
 
 /**
@@ -90,6 +92,7 @@ export function startPasswordInput(username, requireOldPassword, verifyOldPasswo
     passwordMode.verifyOldPasswordCallback = verifyOldPasswordCallback;
     passwordMode.callback = callback;
     passwordMode.originalPrompt = promptElement.innerHTML;
+    passwordMode.attempts = 0; // Réinitialiser les tentatives
     
     // Changer le prompt selon la première étape
     if (requireOldPassword) {
@@ -111,6 +114,7 @@ export function startPasswordInput(username, requireOldPassword, verifyOldPasswo
 export function cancelPasswordInput() {
     if (passwordMode.active) {
         passwordMode.active = false;
+        passwordMode.attempts = 0;
         promptElement.innerHTML = passwordMode.originalPrompt;
         commandInput.value = '';
         addLine('Changement de mot de passe annulé', 'error');
@@ -118,7 +122,7 @@ export function cancelPasswordInput() {
 }
 
 /**
- * Gère la saisie en mode mot de passe
+ * Gère la saisie en mode mot de passe avec 3 tentatives pour l'ancien mot de passe
  * @param {string} input - Texte saisi
  * @returns {boolean} - true si on reste en mode password, false si on sort
  */
@@ -127,41 +131,61 @@ export function handlePasswordInput(input) {
     
     if (passwordMode.step === 'current') {
         // Première étape : saisir l'ancien mot de passe
-        passwordMode.currentPassword = input;
+        passwordMode.attempts++;
         
         // Afficher des * au lieu du mot de passe
         addLine(`Mot de passe actuel: ${'*'.repeat(input.length)}`, 'info');
         
         // VÉRIFICATION IMMÉDIATE de l'ancien mot de passe
         if (passwordMode.verifyOldPasswordCallback) {
-            addLine(`[DEBUG] Vérification immédiate de l'ancien mot de passe...`, 'info');
+            addLine(`[DEBUG] Tentative ${passwordMode.attempts}/${passwordMode.maxAttempts} - Vérification de l'ancien mot de passe...`, 'info');
             const isValid = passwordMode.verifyOldPasswordCallback(passwordMode.username, input);
             addLine(`[DEBUG] Résultat vérification: ${isValid}`, 'info');
             
-            if (!isValid) {
-                // ÉCHEC - ancien mot de passe incorrect
-                addLine('', '');
-                addLine('❌ Mot de passe actuel incorrect', 'error');
-                addLine('passwd: Authentication failure', 'error');
+            if (isValid) {
+                // SUCCÈS - ancien mot de passe correct
+                addLine(`[DEBUG] Ancien mot de passe validé, passage à l'étape suivante`, 'info');
+                passwordMode.currentPassword = input;
+                passwordMode.step = 'password';
+                passwordMode.attempts = 0; // Réinitialiser pour la suite
                 
-                // Sortir du mode password et restaurer le prompt
-                passwordMode.active = false;
-                promptElement.innerHTML = passwordMode.originalPrompt;
+                // Passer à la saisie du nouveau mot de passe
+                promptElement.innerHTML = '<span style="color: #ffd43b;">Nouveau mot de passe:</span> ';
                 commandInput.value = '';
                 
-                return false; // Sortir du mode password
+                return true; // Rester en mode password
+            } else {
+                // ÉCHEC - ancien mot de passe incorrect
+                if (passwordMode.attempts >= passwordMode.maxAttempts) {
+                    // Épuisement des tentatives
+                    addLine('', '');
+                    addLine('❌ Mot de passe actuel incorrect', 'error');
+                    addLine(`passwd: ${passwordMode.maxAttempts} échecs d'authentification consécutifs`, 'error');
+                    addLine('passwd: Authentication failure', 'error');
+                    
+                    // Sortir du mode password et restaurer le prompt
+                    passwordMode.active = false;
+                    passwordMode.attempts = 0;
+                    promptElement.innerHTML = passwordMode.originalPrompt;
+                    commandInput.value = '';
+                    
+                    return false; // Sortir du mode password
+                } else {
+                    // Encore des tentatives disponibles
+                    const remaining = passwordMode.maxAttempts - passwordMode.attempts;
+                    addLine('', '');
+                    addLine('❌ Mot de passe actuel incorrect', 'error');
+                    addLine(`Tentatives restantes: ${remaining}`, 'error');
+                    addLine('', '');
+                    
+                    // Redemander le mot de passe
+                    promptElement.innerHTML = '<span style="color: #ff6b6b;">Mot de passe actuel:</span> ';
+                    commandInput.value = '';
+                    
+                    return true; // Rester en mode password pour une nouvelle tentative
+                }
             }
         }
-        
-        // Si on arrive ici, l'ancien mot de passe est correct
-        addLine(`[DEBUG] Ancien mot de passe validé, passage à l'étape suivante`, 'info');
-        passwordMode.step = 'password';
-        
-        // Passer à la saisie du nouveau mot de passe
-        promptElement.innerHTML = '<span style="color: #ffd43b;">Nouveau mot de passe:</span> ';
-        commandInput.value = '';
-        
-        return true; // Rester en mode password
         
     } else if (passwordMode.step === 'password') {
         // Deuxième étape (ou première si pas d'ancien) : saisir le nouveau mot de passe
@@ -194,6 +218,7 @@ export function handlePasswordInput(input) {
             // Restaurer le prompt normal
             promptElement.innerHTML = passwordMode.originalPrompt;
             passwordMode.active = false;
+            passwordMode.attempts = 0;
             commandInput.value = '';
             
             // Appeler le callback avec l'ancien et le nouveau mot de passe
