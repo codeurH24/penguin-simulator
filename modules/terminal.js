@@ -19,8 +19,9 @@ let passwordMode = {
     verifyOldPasswordCallback: null,
     callback: null,
     originalPrompt: '',
-    attempts: 0, // Nouveau: compteur de tentatives
-    maxAttempts: 3 // Nouveau: nombre maximum de tentatives
+    attempts: 0, // Compteur de tentatives
+    maxAttempts: 3, // Nombre maximum de tentatives
+    accountHasValidPassword: true // NOUVEAU: si false, une seule tentative
 };
 
 /**
@@ -80,8 +81,9 @@ export function initTerminalElements() {
  * @param {boolean} requireOldPassword - Demander l'ancien mot de passe
  * @param {Function} verifyOldPasswordCallback - Fonction pour vérifier l'ancien mot de passe
  * @param {Function} callback - Fonction appelée avec (oldPassword, newPassword) en cas de succès
+ * @param {boolean} accountHasValidPassword - Si false, une seule tentative autorisée
  */
-export function startPasswordInput(username, requireOldPassword, verifyOldPasswordCallback, callback) {
+export function startPasswordInput(username, requireOldPassword, verifyOldPasswordCallback, callback, accountHasValidPassword = true) {
     passwordMode.active = true;
     passwordMode.requireOldPassword = requireOldPassword;
     passwordMode.step = requireOldPassword ? 'current' : 'password';
@@ -93,6 +95,7 @@ export function startPasswordInput(username, requireOldPassword, verifyOldPasswo
     passwordMode.callback = callback;
     passwordMode.originalPrompt = promptElement.innerHTML;
     passwordMode.attempts = 0; // Réinitialiser les tentatives
+    passwordMode.accountHasValidPassword = accountHasValidPassword; // NOUVEAU
     
     // Changer le prompt selon la première étape
     if (requireOldPassword) {
@@ -115,6 +118,7 @@ export function cancelPasswordInput() {
     if (passwordMode.active) {
         passwordMode.active = false;
         passwordMode.attempts = 0;
+        passwordMode.accountHasValidPassword = true; // NOUVEAU: réinitialiser
         promptElement.innerHTML = passwordMode.originalPrompt;
         commandInput.value = '';
         addLine('Changement de mot de passe annulé', 'error');
@@ -122,7 +126,9 @@ export function cancelPasswordInput() {
 }
 
 /**
- * Gère la saisie en mode mot de passe avec 3 tentatives pour l'ancien mot de passe
+ * Gère la saisie en mode mot de passe avec logique Unix/Debian
+ * - 3 tentatives pour un mot de passe incorrect
+ * - 1 seule tentative pour un compte sans mot de passe (hash !)
  * @param {string} input - Texte saisi
  * @returns {boolean} - true si on reste en mode password, false si on sort
  */
@@ -138,13 +144,10 @@ export function handlePasswordInput(input) {
         
         // VÉRIFICATION IMMÉDIATE de l'ancien mot de passe
         if (passwordMode.verifyOldPasswordCallback) {
-            addLine(`[DEBUG] Tentative ${passwordMode.attempts}/${passwordMode.maxAttempts} - Vérification de l'ancien mot de passe...`, 'info');
             const isValid = passwordMode.verifyOldPasswordCallback(passwordMode.username, input);
-            addLine(`[DEBUG] Résultat vérification: ${isValid}`, 'info');
             
             if (isValid) {
                 // SUCCÈS - ancien mot de passe correct
-                addLine(`[DEBUG] Ancien mot de passe validé, passage à l'étape suivante`, 'info');
                 passwordMode.currentPassword = input;
                 passwordMode.step = 'password';
                 passwordMode.attempts = 0; // Réinitialiser pour la suite
@@ -156,12 +159,21 @@ export function handlePasswordInput(input) {
                 return true; // Rester en mode password
             } else {
                 // ÉCHEC - ancien mot de passe incorrect
-                if (passwordMode.attempts >= passwordMode.maxAttempts) {
-                    // Épuisement des tentatives
+                
+                // NOUVEAU : Si le compte n'a pas de mot de passe valide, sortir immédiatement
+                const noValidPassword = !passwordMode.accountHasValidPassword;
+                
+                if (noValidPassword || passwordMode.attempts >= passwordMode.maxAttempts) {
+                    // Sortir immédiatement pour un compte sans mot de passe OU épuisement des tentatives
                     addLine('', '');
-                    addLine('❌ Mot de passe actuel incorrect', 'error');
-                    addLine(`passwd: ${passwordMode.maxAttempts} échecs d'authentification consécutifs`, 'error');
-                    addLine('passwd: Authentication failure', 'error');
+                    if (noValidPassword) {
+                        addLine('passwd: Authentication token manipulation error', 'error');
+                        addLine('passwd: password unchanged', 'error');
+                    } else {
+                        addLine('❌ Mot de passe actuel incorrect', 'error');
+                        addLine(`passwd: ${passwordMode.maxAttempts} échecs d'authentification consécutifs`, 'error');
+                        addLine('passwd: Authentication failure', 'error');
+                    }
                     
                     // Sortir du mode password et restaurer le prompt
                     passwordMode.active = false;
@@ -171,7 +183,7 @@ export function handlePasswordInput(input) {
                     
                     return false; // Sortir du mode password
                 } else {
-                    // Encore des tentatives disponibles
+                    // Encore des tentatives disponibles (seulement pour un vrai mot de passe)
                     const remaining = passwordMode.maxAttempts - passwordMode.attempts;
                     addLine('', '');
                     addLine('❌ Mot de passe actuel incorrect', 'error');

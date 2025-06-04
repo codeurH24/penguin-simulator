@@ -5,6 +5,29 @@ import { changePassword, getCurrentUser, getUserInfo, isRoot } from '../modules/
 import { showError, showSuccess, addLine, startPasswordInput } from '../modules/terminal.js';
 
 /**
+ * Vérifie si un utilisateur a un mot de passe valide (pas !, *, ou vide)
+ * @param {string} username - Nom d'utilisateur
+ * @param {Object} fileSystem - Système de fichiers
+ * @returns {boolean} - true si l'utilisateur a un mot de passe valide
+ */
+function checkIfUserHasValidPassword(username, fileSystem) {
+    const shadowFile = fileSystem['/etc/shadow'];
+    if (!shadowFile || shadowFile.type !== 'file') {
+        return false;
+    }
+    
+    const lines = shadowFile.content.split('\n');
+    const userLine = lines.find(line => line.startsWith(username + ':'));
+    if (!userLine) {
+        return false;
+    }
+    
+    const [, currentHash] = userLine.split(':');
+    // Un mot de passe est valide s'il n'est pas !, *, ou vide
+    return currentHash && currentHash !== '!' && currentHash !== '*';
+}
+
+/**
  * Commande passwd - Change le mot de passe d'un utilisateur
  * Comme dans un vrai système Unix/Linux, l'utilisateur a 3 tentatives pour saisir l'ancien mot de passe
  * @param {Array} args - Arguments de la commande
@@ -89,11 +112,16 @@ export function cmdPasswd(args, context) {
             showSuccess('⚠️  Attention: connexion sans mot de passe possible');
             
         } else {
-            // Changer le mot de passe - ici la magie des 3 tentatives opère via terminal.js
+            // Changer le mot de passe
             const requireOldPassword = (targetUsername === currentUser.username) && !isRoot();
             
+            // NOUVEAU : Déterminer si le compte a un mot de passe valide
+            let accountHasValidPassword = true;
+            if (requireOldPassword) {
+                accountHasValidPassword = checkIfUserHasValidPassword(targetUsername, fileSystem);
+            }
+            
             // Créer la fonction de vérification de l'ancien mot de passe
-            // Cette fonction sera appelée jusqu'à 3 fois par terminal.js en cas d'échec
             const verifyOldPasswordCallback = requireOldPassword ? 
                 (username, oldPassword) => verifyOldPassword(username, oldPassword, fileSystem) : 
                 null;
@@ -103,9 +131,9 @@ export function cmdPasswd(args, context) {
                 requireOldPassword, 
                 verifyOldPasswordCallback,
                 (oldPassword, newPassword) => {
-                    // Cette fonction sera appelée SEULEMENT si tout est validé (3 tentatives max)
                     handlePasswordChangeSuccess(targetUsername, oldPassword, newPassword, fileSystem, saveFileSystem);
-                }
+                },
+                accountHasValidPassword // NOUVEAU paramètre
             );
         }
         
@@ -130,9 +158,6 @@ function handlePasswordChangeSuccess(targetUsername, oldPassword, newPassword, f
             return;
         }
         
-        // À ce stade, l'ancien mot de passe a déjà été vérifié par le terminal (jusqu'à 3 fois)
-        addLine(`[DEBUG] Changement du mot de passe validé après vérification`, 'info');
-        
         // Changer le mot de passe
         changePassword(targetUsername, newPassword, fileSystem, saveFileSystem);
         
@@ -156,48 +181,31 @@ function handlePasswordChangeSuccess(targetUsername, oldPassword, newPassword, f
  * @returns {boolean} - true si l'ancien mot de passe est correct
  */
 function verifyOldPassword(username, oldPassword, fileSystem) {
-    addLine(`[DEBUG] === VÉRIFICATION MOT DE PASSE ===`, 'info');
-    addLine(`[DEBUG] Username: "${username}"`, 'info');
-    addLine(`[DEBUG] Password saisi: "${oldPassword}" (longueur: ${oldPassword.length})`, 'info');
-    
     // Récupérer le hash actuel du mot de passe depuis /etc/shadow
     const shadowFile = fileSystem['/etc/shadow'];
     if (!shadowFile || shadowFile.type !== 'file') {
-        addLine(`[DEBUG] ERREUR: Fichier /etc/shadow introuvable`, 'error');
         return false;
     }
     
     const lines = shadowFile.content.split('\n');
     const userLine = lines.find(line => line.startsWith(username + ':'));
     if (!userLine) {
-        addLine(`[DEBUG] ERREUR: Utilisateur "${username}" introuvable dans /etc/shadow`, 'error');
         return false;
     }
     
     const [, currentHash] = userLine.split(':');
-    addLine(`[DEBUG] Hash stocké: "${currentHash}"`, 'info');
     
-    // Vérifier que l'utilisateur a un mot de passe valide
+    // COMPORTEMENT UNIX/DEBIAN : Si le hash est !, *, ou vide, 
+    // le système demande quand même le mot de passe mais AUCUNE entrée ne peut être correcte
     if (!currentHash || currentHash === '!' || currentHash === '*' || currentHash === '') {
-        addLine(`[DEBUG] ERREUR: Pas de mot de passe valide (hash: "${currentHash}")`, 'error');
-        return false;
+        return false; // Toujours faux, peu importe ce qui est saisi
     }
     
-    // Calculer le hash du mot de passe saisi
+    // Si on a un hash valide, procéder à la vérification normale
     const calculatedHash = calculateHash(oldPassword);
-    addLine(`[DEBUG] Hash calculé: "${calculatedHash}"`, 'info');
     
     // Comparer les hashs
     const match = currentHash === calculatedHash;
-    addLine(`[DEBUG] Les hashs correspondent: ${match}`, 'info');
-    
-    if (!match) {
-        addLine(`[DEBUG] ÉCHEC - Hashes différents:`, 'error');
-        addLine(`[DEBUG] - Stocké  : "${currentHash}"`, 'error');
-        addLine(`[DEBUG] - Calculé : "${calculatedHash}"`, 'error');
-    } else {
-        addLine(`[DEBUG] SUCCÈS - Ancien mot de passe validé!`, 'info');
-    }
     
     return match;
 }
