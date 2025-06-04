@@ -1,4 +1,5 @@
 import { initDB, saveData, loadData, isDBReady } from './modules/storage.js';
+import { initUserSystem, getCurrentUser } from './modules/users.js';
 import { 
     initTerminalElements, 
     addLine, 
@@ -7,7 +8,9 @@ import {
     setupEnterHandler,
     showCommandExecution,
     clearCommandInput,
-    isTerminalReady
+    isTerminalReady,
+    isPasswordMode,
+    handlePasswordInput
 } from './modules/terminal.js';
 import { executeCommand as execCommand } from './bin/bash.js';
 
@@ -42,19 +45,19 @@ function createDirectoryEntry() {
     };
 }
 
-
-
 /**
  * Crée le contexte pour les variables d'environnement
- * @returns {Object} - Contexte avec variables d'environnement
+ * @returns {Object} - Contexte avec variables d'environnement et informations utilisateur
  */
 function createContext() {
+    const currentUser = getCurrentUser();
     return {
         fileSystem,
         currentPath,
         setCurrentPath,
         saveFileSystem,
-        variables: shellVariables
+        variables: shellVariables,
+        currentUser
     };
 }
 
@@ -72,8 +75,19 @@ async function loadFileSystem() {
         fileSystem = data.fileSystem;
         currentPath = data.currentPath;
         shellVariables = data.variables || {};
+        
+        // IMPORTANT: S'assurer que les fichiers système existent après le chargement
+        if (!fileSystem['/etc/passwd']) {
+            console.log('Fichiers système manquants après chargement, re-initialisation...');
+            initUserSystem(fileSystem);
+        }
+        
         updatePrompt(currentPath, createContext());
         addLine('📂 Données restaurées depuis la dernière session', 'prompt');
+    } else {
+        // Première fois - initialiser les fichiers système
+        initUserSystem(fileSystem);
+        addLine('🆕 Nouveau système initialisé', 'prompt');
     }
 }
 
@@ -114,6 +128,20 @@ function handleHistoryDown() {
 
 // Fonction pour gérer l'appui sur Entrée
 function handleEnterPressed(command) {
+    // Vérifier si on est en mode saisie de mot de passe
+    if (isPasswordMode()) {
+        // Gérer la saisie du mot de passe
+        const continuePasswordMode = handlePasswordInput(command);
+        
+        // Vider l'input dans tous les cas
+        clearCommandInput();
+        
+        // Si on sort du mode password, on ne fait rien de plus
+        // Si on reste en mode password, on attend la prochaine saisie
+        return;
+    }
+    
+    // Mode normal : exécuter la commande
     if (command) {
         commandHistory.push(command);
         historyIndex = commandHistory.length;
@@ -132,25 +160,45 @@ async function initTerminal() {
         return;
     }
 
-    updatePrompt(currentPath, createContext());
-
-    // Configurer les gestionnaires d'événements
-    setupCommandHistory(handleHistoryUp, handleHistoryDown, createContext);
-    setupEnterHandler(handleEnterPressed);
-
-    // Initialiser la base de données
+    // Initialiser la base de données AVANT tout
     const dbSuccess = await initDB();
     if (dbSuccess) {
-        await loadFileSystem();
+        await loadFileSystem(); // Ceci va aussi initialiser les fichiers système si nécessaire
         addLine('💾 IndexedDB connecté - persistance activée', 'prompt');
     } else {
+        // Si pas de DB, initialiser quand même les fichiers système
+        initUserSystem(fileSystem);
         addLine('⚠️ IndexedDB indisponible - mode mémoire', 'error');
     }
     
+    // Vérification finale que les fichiers système existent
+    if (!fileSystem['/etc/passwd']) {
+        console.error('ERREUR: /etc/passwd manquant, re-initialisation forcée');
+        initUserSystem(fileSystem);
+    }
+    
+    addLine('👥 Système d\'utilisateurs prêt', 'prompt');
+    
+    // Configurer le prompt et les gestionnaires d'événements
+    updatePrompt(currentPath, createContext());
+    setupCommandHistory(handleHistoryUp, handleHistoryDown, createContext);
+    setupEnterHandler(handleEnterPressed);
+    
     // Message de bienvenue
     addLine('🐧 Terminal Linux simulé - Debian-style bash shell', 'prompt');
-    addLine('Connecté en tant que root@bash', 'prompt');
+    const currentUser = getCurrentUser();
+    addLine(`Connecté en tant que ${currentUser.username}@bash`, 'prompt');
     addLine('Tapez "help" pour voir les commandes disponibles', 'prompt');
+    addLine('', '');
+    addLine('💡 Astuce: en mode passwd, tapez votre mot de passe et appuyez sur Entrée', 'info');
+    addLine('   Utilisez Échap pour annuler la saisie de mot de passe', 'info');
+    
+    // Debug: vérifier que les fichiers système sont bien là
+    console.log('Fichiers système créés:', {
+        passwd: !!fileSystem['/etc/passwd'],
+        shadow: !!fileSystem['/etc/shadow'],
+        group: !!fileSystem['/etc/group']
+    });
 }
 
 // Lancer l'initialisation

@@ -8,6 +8,11 @@ import { cmdMkdir } from './mkdir.js';
 import { cmdMv } from './mv.js';
 import { cmdEcho } from './echo.js';
 import { cmdCat } from './cat.js';
+import { cmdUseradd } from './useradd.js';
+import { cmdUserdel } from './userdel.js';
+import { cmdSu } from './su.js';
+import { cmdPasswd } from './passwd.js';
+import { cmdWhoami, cmdId, cmdGroups } from './user-info.js';
 import { 
     executeBuiltin, 
     isBuiltinCommand,
@@ -96,6 +101,27 @@ function executeSingleCommand(cmd, args, context, suppressError = false) {
         case 'rm':
             cmdRm(args, context);
             return true;
+        case 'useradd':
+            cmdUseradd(args, context);
+            return true;
+        case 'userdel':
+            cmdUserdel(args, context);
+            return true;
+        case 'su':
+            cmdSu(args, context);
+            return true;
+        case 'passwd':
+            cmdPasswd(args, context);
+            return true;
+        case 'whoami':
+            cmdWhoami(args, context);
+            return true;
+        case 'id':
+            cmdId(args, context);
+            return true;
+        case 'groups':
+            cmdGroups(args, context);
+            return true;
         default:
             if (!suppressError) {
                 showError(`bash: ${cmd}: commande introuvable`);
@@ -173,7 +199,7 @@ export function executeCommand(command, context) {
  */
 export function getAvailableCommands() {
     const builtins = getBuiltinCommands();
-    const externals = ['ls', 'echo', 'cat', 'mkdir', 'mv', 'rm'];
+    const externals = ['ls', 'echo', 'cat', 'mkdir', 'mv', 'rm', 'useradd', 'userdel', 'su', 'passwd', 'whoami', 'id', 'groups'];
     return [...builtins, ...externals];
 }
 

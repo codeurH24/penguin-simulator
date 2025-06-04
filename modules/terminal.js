@@ -1,9 +1,25 @@
 // terminal.js - Module d'interface et d'affichage du terminal avec autocomplétion
-// Gère l'interaction avec le DOM et l'affichage
+// Gère l'interaction avec le DOM et l'affichage + vérification immédiate ancien mot de passe
+
+import { getCurrentUser } from './users.js';
 
 let terminal = null;
 let commandInput = null;
 let promptElement = null;
+
+// État pour la saisie de mot de passe
+let passwordMode = {
+    active: false,
+    step: 'current', // 'current' | 'password' | 'confirm'
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+    username: '',
+    requireOldPassword: false,
+    verifyOldPasswordCallback: null, // Nouvelle fonction pour vérifier immédiatement
+    callback: null,
+    originalPrompt: ''
+};
 
 /**
  * Récupère les variables d'environnement pour le prompt
@@ -11,16 +27,17 @@ let promptElement = null;
  * @returns {Object} - {user, hostname}
  */
 function getEnvironmentVars(context = null) {
-    let user = 'root';
+    const currentUser = getCurrentUser();
+    let user = currentUser.username;
     let hostname = 'bash';
     
     if (context) {
-        // Variables d'environnement (comme dans bash.js)
+        // Variables d'environnement (comme dans bash-variables.js)
         const envVars = {
-            'HOME': '/root',
+            'HOME': currentUser.home,
             'PWD': context.currentPath || '/',
-            'USER': 'root',
-            'SHELL': '/bin/bash',
+            'USER': currentUser.username,
+            'SHELL': currentUser.shell,
             'HOSTNAME': 'bash',
             'PATH': '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
         };
@@ -55,14 +72,169 @@ export function initTerminalElements() {
     commandInput.focus();
 }
 
+/**
+ * Démarre le mode saisie de mot de passe
+ * @param {string} username - Utilisateur pour qui changer le mot de passe
+ * @param {boolean} requireOldPassword - Demander l'ancien mot de passe
+ * @param {Function} verifyOldPasswordCallback - Fonction pour vérifier l'ancien mot de passe
+ * @param {Function} callback - Fonction appelée avec (oldPassword, newPassword) en cas de succès
+ */
+export function startPasswordInput(username, requireOldPassword, verifyOldPasswordCallback, callback) {
+    passwordMode.active = true;
+    passwordMode.requireOldPassword = requireOldPassword;
+    passwordMode.step = requireOldPassword ? 'current' : 'password';
+    passwordMode.currentPassword = '';
+    passwordMode.newPassword = '';
+    passwordMode.confirmPassword = '';
+    passwordMode.username = username;
+    passwordMode.verifyOldPasswordCallback = verifyOldPasswordCallback;
+    passwordMode.callback = callback;
+    passwordMode.originalPrompt = promptElement.innerHTML;
+    
+    // Changer le prompt selon la première étape
+    if (requireOldPassword) {
+        promptElement.innerHTML = '<span style="color: #ff6b6b;">Mot de passe actuel:</span> ';
+        addLine(`Changement du mot de passe pour '${username}'`, 'info');
+    } else {
+        promptElement.innerHTML = '<span style="color: #ffd43b;">Nouveau mot de passe:</span> ';
+        addLine(`Changement du mot de passe pour '${username}'`, 'info');
+    }
+    
+    // Vider l'input
+    commandInput.value = '';
+    commandInput.focus();
+}
 
+/**
+ * Annule le mode saisie de mot de passe
+ */
+export function cancelPasswordInput() {
+    if (passwordMode.active) {
+        passwordMode.active = false;
+        promptElement.innerHTML = passwordMode.originalPrompt;
+        commandInput.value = '';
+        addLine('Changement de mot de passe annulé', 'error');
+    }
+}
+
+/**
+ * Gère la saisie en mode mot de passe
+ * @param {string} input - Texte saisi
+ * @returns {boolean} - true si on reste en mode password, false si on sort
+ */
+export function handlePasswordInput(input) {
+    if (!passwordMode.active) return false;
+    
+    if (passwordMode.step === 'current') {
+        // Première étape : saisir l'ancien mot de passe
+        passwordMode.currentPassword = input;
+        
+        // Afficher des * au lieu du mot de passe
+        addLine(`Mot de passe actuel: ${'*'.repeat(input.length)}`, 'info');
+        
+        // VÉRIFICATION IMMÉDIATE de l'ancien mot de passe
+        if (passwordMode.verifyOldPasswordCallback) {
+            addLine(`[DEBUG] Vérification immédiate de l'ancien mot de passe...`, 'info');
+            const isValid = passwordMode.verifyOldPasswordCallback(passwordMode.username, input);
+            addLine(`[DEBUG] Résultat vérification: ${isValid}`, 'info');
+            
+            if (!isValid) {
+                // ÉCHEC - ancien mot de passe incorrect
+                addLine('', '');
+                addLine('❌ Mot de passe actuel incorrect', 'error');
+                addLine('passwd: Authentication failure', 'error');
+                
+                // Sortir du mode password et restaurer le prompt
+                passwordMode.active = false;
+                promptElement.innerHTML = passwordMode.originalPrompt;
+                commandInput.value = '';
+                
+                return false; // Sortir du mode password
+            }
+        }
+        
+        // Si on arrive ici, l'ancien mot de passe est correct
+        addLine(`[DEBUG] Ancien mot de passe validé, passage à l'étape suivante`, 'info');
+        passwordMode.step = 'password';
+        
+        // Passer à la saisie du nouveau mot de passe
+        promptElement.innerHTML = '<span style="color: #ffd43b;">Nouveau mot de passe:</span> ';
+        commandInput.value = '';
+        
+        return true; // Rester en mode password
+        
+    } else if (passwordMode.step === 'password') {
+        // Deuxième étape (ou première si pas d'ancien) : saisir le nouveau mot de passe
+        passwordMode.newPassword = input;
+        passwordMode.step = 'confirm';
+        
+        // Afficher des * au lieu du mot de passe
+        addLine(`Nouveau mot de passe: ${'*'.repeat(input.length)}`, 'info');
+        
+        // Changer le prompt pour la confirmation
+        promptElement.innerHTML = '<span style="color: #ffd43b;">Retapez le nouveau mot de passe:</span> ';
+        commandInput.value = '';
+        
+        return true; // Rester en mode password
+        
+    } else if (passwordMode.step === 'confirm') {
+        // Troisième étape : confirmer le mot de passe
+        passwordMode.confirmPassword = input;
+        
+        // Afficher des * au lieu du mot de passe
+        addLine(`Confirmation: ${'*'.repeat(input.length)}`, 'info');
+        
+        // Vérifier que les mots de passe correspondent
+        if (passwordMode.newPassword === passwordMode.confirmPassword) {
+            // Succès !
+            const currentPassword = passwordMode.currentPassword;
+            const newPassword = passwordMode.newPassword;
+            const callback = passwordMode.callback;
+            
+            // Restaurer le prompt normal
+            promptElement.innerHTML = passwordMode.originalPrompt;
+            passwordMode.active = false;
+            commandInput.value = '';
+            
+            // Appeler le callback avec l'ancien et le nouveau mot de passe
+            if (callback) {
+                callback(currentPassword, newPassword);
+            }
+            
+        } else {
+            // Échec - les mots de passe ne correspondent pas
+            addLine('', '');
+            addLine('❌ Les mots de passe ne correspondent pas', 'error');
+            addLine('Veuillez recommencer...', 'error');
+            
+            // Recommencer depuis la saisie du nouveau mot de passe
+            passwordMode.step = 'password';
+            passwordMode.newPassword = '';
+            passwordMode.confirmPassword = '';
+            promptElement.innerHTML = '<span style="color: #ffd43b;">Nouveau mot de passe:</span> ';
+            commandInput.value = '';
+        }
+        
+        return passwordMode.active; // false si succès, true si on recommence
+    }
+    
+    return false;
+}
+
+/**
+ * Vérifie si on est en mode saisie mot de passe
+ * @returns {boolean}
+ */
+export function isPasswordMode() {
+    return passwordMode.active;
+}
 
 /**
  * Obtient les commandes disponibles pour l'autocomplétion
  * @returns {Array} - Liste des commandes
  */
 function getAvailableCommands() {
-    return ['help', 'ls', 'cd', 'mkdir', 'mv', 'rm', 'echo', 'pwd', 'cat', 'set', 'clear', 'reset'];
+    return ['help', 'ls', 'cd', 'mkdir', 'mv', 'rm', 'echo', 'pwd', 'cat', 'set', 'clear', 'reset', 'useradd', 'userdel', 'su', 'passwd', 'whoami', 'id', 'groups'];
 }
 
 /**
@@ -101,11 +273,13 @@ function resolvePathForCompletion(path, currentPath) {
     }
     
     if (path === '~') {
-        return '/root';
+        const currentUser = getCurrentUser();
+        return currentUser.home;
     }
     
     if (path.startsWith('~/')) {
-        return '/root' + path.substring(1);
+        const currentUser = getCurrentUser();
+        return currentUser.home + path.substring(1);
     }
     
     // Chemin relatif
@@ -293,6 +467,19 @@ export function setupCommandHistory(handleHistoryUp, handleHistoryDown, getConte
     }
 
     commandInput.addEventListener('keydown', (e) => {
+        // En mode password, seule la touche Escape est autorisée (pour annuler)
+        if (passwordMode.active) {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                cancelPasswordInput();
+            }
+            // Toutes les autres touches (flèches, tab) sont ignorées en mode password
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'Tab') {
+                e.preventDefault();
+            }
+            return;
+        }
+        
         if (e.key === 'ArrowUp') {
             e.preventDefault();
             const newCommand = handleHistoryUp();
