@@ -13,6 +13,7 @@ import {
     handlePasswordInput
 } from './modules/terminal.js';
 import { executeCommand as execCommand } from './bin/bash.js';
+import { initOldPwd } from './lib/bash-variables.js';
 
 // Variables globales
 let fileSystem = {
@@ -76,6 +77,11 @@ async function loadFileSystem() {
         currentPath = data.currentPath;
         shellVariables = data.variables || {};
         
+        // S'assurer qu'OLDPWD est initialisé après le chargement
+        if (!shellVariables.OLDPWD) {
+            shellVariables.OLDPWD = currentPath;
+        }
+        
         // IMPORTANT: S'assurer que les fichiers système existent après le chargement
         if (!fileSystem['/etc/passwd']) {
             console.log('Fichiers système manquants après chargement, re-initialisation...');
@@ -85,15 +91,21 @@ async function loadFileSystem() {
         updatePrompt(currentPath, createContext());
         addLine('📂 Données restaurées depuis la dernière session', 'prompt');
     } else {
-        // Première fois - initialiser les fichiers système
+        // Première fois - initialiser les fichiers système et OLDPWD
         initUserSystem(fileSystem);
+        shellVariables.OLDPWD = currentPath;
         addLine('🆕 Nouveau système initialisé', 'prompt');
     }
 }
 
 // Fonction pour changer le répertoire courant
 function setCurrentPath(newPath) {
+    const oldPath = currentPath;
     currentPath = newPath;
+    
+    // Mettre à jour OLDPWD
+    shellVariables.OLDPWD = oldPath;
+    
     updatePrompt(currentPath, createContext());
 }
 
@@ -166,8 +178,9 @@ async function initTerminal() {
         await loadFileSystem(); // Ceci va aussi initialiser les fichiers système si nécessaire
         addLine('💾 IndexedDB connecté - persistance activée', 'prompt');
     } else {
-        // Si pas de DB, initialiser quand même les fichiers système
+        // Si pas de DB, initialiser quand même les fichiers système et OLDPWD
         initUserSystem(fileSystem);
+        shellVariables.OLDPWD = currentPath;
         addLine('⚠️ IndexedDB indisponible - mode mémoire', 'error');
     }
     
@@ -175,6 +188,11 @@ async function initTerminal() {
     if (!fileSystem['/etc/passwd']) {
         console.error('ERREUR: /etc/passwd manquant, re-initialisation forcée');
         initUserSystem(fileSystem);
+    }
+    
+    // S'assurer qu'OLDPWD est toujours initialisé
+    if (!shellVariables.OLDPWD) {
+        shellVariables.OLDPWD = currentPath;
     }
     
     addLine('👥 Système d\'utilisateurs prêt', 'prompt');
@@ -199,6 +217,8 @@ async function initTerminal() {
         shadow: !!fileSystem['/etc/shadow'],
         group: !!fileSystem['/etc/group']
     });
+    
+    console.log('Variables shell initialisées:', shellVariables);
 }
 
 // Lancer l'initialisation
