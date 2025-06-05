@@ -13,6 +13,7 @@ import { cmdUserdel } from './userdel.js';
 import { cmdSu } from './su.js';
 import { cmdPasswd } from './passwd.js';
 import { cmdWhoami, cmdId, cmdGroups } from './user-info.js';
+import { cmdTouch } from './touch.js';
 import { 
     executeBuiltin, 
     isBuiltinCommand,
@@ -94,6 +95,9 @@ function executeSingleCommand(cmd, args, context, suppressError = false) {
             return true;
         case 'mkdir':
             cmdMkdir(args, context);
+            return true;
+        case 'touch':
+            cmdTouch(args, context);
             return true;
         case 'mv':
             cmdMv(args, context);
@@ -199,7 +203,7 @@ export function executeCommand(command, context) {
  */
 export function getAvailableCommands() {
     const builtins = getBuiltinCommands();
-    const externals = ['ls', 'echo', 'cat', 'mkdir', 'mv', 'rm', 'useradd', 'userdel', 'su', 'passwd', 'whoami', 'id', 'groups'];
+    const externals = ['ls', 'echo', 'cat', 'mkdir', 'mv', 'rm', 'touch', 'useradd', 'userdel', 'su', 'passwd', 'whoami', 'id', 'groups'];
     return [...builtins, ...externals];
 }
 
