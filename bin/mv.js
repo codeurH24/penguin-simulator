@@ -1,4 +1,4 @@
-// bin/mv.js - Commande mv (move) isolée
+// bin/mv.js - Commande mv (move) isolée - Version améliorée
 // Équivalent de /bin/mv sous Debian
 
 import { resolvePath, getBasename } from '../modules/filesystem.js';
@@ -12,9 +12,13 @@ import { showError, showSuccess } from '../modules/terminal.js';
 export function cmdMv(args, context) {
     const { fileSystem, currentPath, saveFileSystem } = context;
     
+    // Utiliser les fonctions du contexte si disponibles, sinon celles par défaut
+    const errorFn = context?.showError || showError;
+    const successFn = context?.showSuccess || showSuccess;
+    
     if (args.length < 2) {
-        showError('mv: source et destination requises');
-        showError('Usage: mv <source> <destination>');
+        errorFn('mv: source et destination requises');
+        errorFn('Usage: mv <source> <destination>');
         return;
     }
 
@@ -22,7 +26,7 @@ export function cmdMv(args, context) {
     let destPath = resolvePath(args[1], currentPath);
 
     if (!fileSystem[sourcePath]) {
-        showError(`mv: ${args[0]}: Fichier ou dossier introuvable`);
+        errorFn(`mv: ${args[0]}: Fichier ou dossier introuvable`);
         return;
     }
 
@@ -33,18 +37,23 @@ export function cmdMv(args, context) {
     }
 
     if (fileSystem[destPath] && destPath !== sourcePath) {
-        showError(`mv: ${args[1]}: La destination existe déjà`);
+        errorFn(`mv: ${args[1]}: La destination existe déjà`);
         return;
     }
 
     if (destPath === sourcePath) {
-        showError(`mv: '${args[0]}' et '${args[1]}' sont le même fichier`);
+        errorFn(`mv: '${args[0]}' et '${args[1]}' sont le même fichier`);
         return;
     }
 
-    // Déplacer l'élément et mettre à jour les métadonnées
-    fileSystem[destPath] = { ...fileSystem[sourcePath] };
-    fileSystem[destPath].modified = new Date(); // Mise à jour date modification
+    // Sauvegarder les métadonnées originales pour les préserver
+    const originalItem = { ...fileSystem[sourcePath] };
+    
+    // Déplacer l'élément et préserver les métadonnées importantes
+    fileSystem[destPath] = {
+        ...originalItem,
+        modified: new Date() // Seule la date de modification est mise à jour
+    };
     delete fileSystem[sourcePath];
 
     // Si c'est un dossier, déplacer aussi tout son contenu
@@ -64,6 +73,17 @@ export function cmdMv(args, context) {
         });
     }
 
-    showSuccess(`'${args[0]}' déplacé vers '${getBasename(destPath)}'`);
+    // Message de succès avec le nom de base pour plus de clarté
+    const sourceName = getBasename(sourcePath);
+    const destName = getBasename(destPath);
+    
+    if (sourceName === destName) {
+        // Déplacement vers un autre dossier
+        successFn(`'${args[0]}' déplacé vers '${args[1]}'`);
+    } else {
+        // Renommage
+        successFn(`'${args[0]}' déplacé vers '${destName}'`);
+    }
+    
     saveFileSystem();
 }
