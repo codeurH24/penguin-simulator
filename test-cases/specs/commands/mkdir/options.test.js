@@ -1,8 +1,8 @@
 // test-cases/commands/mkdir/options.test.js - Tests des options pour mkdir
-import { createTestContext, clearCaptures, getCaptures } from '../../lib/context.js';
-import { assert, validateFileSystem, testUtils } from '../../lib/helpers.js';
-import { createTest } from '../../lib/runner.js';
-import { cmdMkdir } from '../../../bin/mkdir.js';
+import { createTestContext, clearCaptures, getCaptures } from '../../../lib/context.js';
+import { assert, validateFileSystem, testUtils } from '../../../lib/helpers.js';
+import { createTest } from '../../../lib/runner.js';
+import { cmdMkdir } from '../../../../bin/mkdir.js';
 
 /**
  * Test de l'option -p pour créer les répertoires parents

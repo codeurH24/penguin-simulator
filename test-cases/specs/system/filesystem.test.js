@@ -1,7 +1,7 @@
 // test-cases/system/filesystem.test.js - Tests du système de fichiers
-import { createTestContext, clearCaptures } from '../lib/context.js';
-import { assert, testUtils } from '../lib/helpers.js';
-import { createTest } from '../lib/runner.js';
+import { createTestContext, clearCaptures } from '../../lib/context.js';
+import { assert, testUtils } from '../../lib/helpers.js';
+import { createTest } from '../../lib/runner.js';
 
 /**
  * Test de vérification des dossiers de base du système

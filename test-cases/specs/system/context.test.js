@@ -1,7 +1,7 @@
 // test-cases/system/context.test.js - Tests du contexte d'exécution
-import { createTestContext, clearCaptures } from '../lib/context.js';
-import { assert, testUtils } from '../lib/helpers.js';
-import { createTest } from '../lib/runner.js';
+import { createTestContext, clearCaptures } from '../../lib/context.js';
+import { assert, testUtils } from '../../lib/helpers.js';
+import { createTest } from '../../lib/runner.js';
 
 /**
  * Test de base : vérification de l'initialisation du contexte
