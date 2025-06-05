@@ -1,212 +1,168 @@
-// tests.js - Tests factorisés pour le terminal Linux
-import { createContext } from './core/context.js';
-import { cmdMkdir } from './bin/mkdir.js';
+// tests.js - Point d'entrée principal des tests
+import { runTestSuite, showFinalReport } from './test-cases/lib/runner.js';
 
-// =============================================================================
-// INFRASTRUCTURE DE TEST
-// =============================================================================
-
-// Variable globale pour capturer les sorties
-let capturedOutputs = [];
-
-// Fonctions de capture pour remplacer les vraies fonctions terminal
-function captureAddLine(text, className = '') {
-    capturedOutputs.push({ text, className });
-    console.log(`[CAPTURE] ${className ? `[${className}] ` : ''}${text}`);
-}
-
-function captureShowError(message) {
-    capturedOutputs.push({ text: message, className: 'error' });
-    console.log(`[CAPTURE ERROR] ${message}`);
-}
-
-function captureShowSuccess(message) {
-    capturedOutputs.push({ text: message, className: 'success' });
-    console.log(`[CAPTURE SUCCESS] ${message}`);
-}
+// Import des suites de tests
+import { contextTests } from './test-cases/system/context.test.js';
+import { filesystemTests } from './test-cases/system/filesystem.test.js';
+import { mkdirBasicTests } from './test-cases/commands/mkdir/basic.test.js';
+import { mkdirOptionsTests } from './test-cases/commands/mkdir/options.test.js';
 
 /**
- * Crée un contexte de test avec fonctions de capture injectées
- * @returns {Object} - Contexte de test prêt à utiliser
+ * Fonction principale pour lancer tous les tests
  */
-function createTestContext() {
-    const context = createContext();
+async function runAllTests() {
+    console.log('🧪 LANCEMENT DE LA SUITE COMPLÈTE DE TESTS');
+    console.log('=' .repeat(60));
     
-    // Injecter nos fonctions de capture
-    context.addLine = captureAddLine;
-    context.showError = captureShowError;
-    context.showSuccess = captureShowSuccess;
+    const startTime = performance.now();
+    const suites = [];
     
-    return context;
-}
-
-/**
- * Vide les captures précédentes
- */
-function clearCaptures() {
-    capturedOutputs = [];
-}
-
-/**
- * Affiche les captures pour debug
- */
-function showCaptures() {
-    console.log(`Nombre de lignes capturées: ${capturedOutputs.length}`);
-    if (capturedOutputs.length > 0) {
-        console.log('Contenu capturé:');
-        capturedOutputs.forEach((output, index) => {
-            console.log(`  ${index}: "${output.text}" [classe: ${output.className || 'aucune'}]`);
-        });
-    }
-}
-
-// =============================================================================
-// TEST 1 : VÉRIFICATION DU SYSTÈME DE FICHIERS
-// =============================================================================
-
-function testFileSystemInitialization() {
-    console.log('=== Test 1 : Initialisation du système de fichiers ===');
-    
-    clearCaptures();
-    const context = createTestContext();
-    
-    // Vérifications du système de fichiers
-    const fileSystemKeys = Object.keys(context.fileSystem);
-    console.log('DEBUG - Système de fichiers:', fileSystemKeys);
-    console.log('DEBUG - currentPath:', context.currentPath);
-    
-    // Test 1.1 : Dossier racine existe
-    const hasRoot = context.fileSystem['/'] !== undefined;
-    console.log('✓ Dossier racine / existe:', hasRoot ? 'OUI' : 'NON');
-    
-    // Test 1.2 : Dossier /home existe
-    const hasHome = context.fileSystem['/home'] !== undefined;
-    console.log('✓ Dossier /home existe:', hasHome ? 'OUI' : 'NON');
-    
-    // Test 1.3 : Dossier /root existe
-    const hasRootDir = context.fileSystem['/root'] !== undefined;
-    console.log('✓ Dossier /root existe:', hasRootDir ? 'OUI' : 'NON');
-    
-    // Test 1.4 : currentPath est correct
-    const correctPath = context.currentPath === '/root';
-    console.log('✓ currentPath est /root:', correctPath ? 'OUI' : 'NON');
-    
-    // Test 1.5 : Vérifier le type des dossiers
-    const rootIsDir = context.fileSystem['/']?.type === 'dir';
-    const homeIsDir = context.fileSystem['/home']?.type === 'dir';
-    const rootDirIsDir = context.fileSystem['/root']?.type === 'dir';
-    
-    console.log('✓ / est un dossier:', rootIsDir ? 'OUI' : 'NON');
-    console.log('✓ /home est un dossier:', homeIsDir ? 'OUI' : 'NON');
-    console.log('✓ /root est un dossier:', rootDirIsDir ? 'OUI' : 'NON');
-    
-    // Résultat global du test 1
-    const test1Success = hasRoot && hasHome && hasRootDir && correctPath && 
-                        rootIsDir && homeIsDir && rootDirIsDir;
-    
-    console.log(test1Success ? '✅ Test 1 RÉUSSI' : '❌ Test 1 ÉCHOUÉ');
-    console.log('');
-    
-    return test1Success;
-}
-
-// =============================================================================
-// TEST 2 : COMMANDE MKDIR
-// =============================================================================
-
-function testMkdirCommand() {
-    console.log('=== Test 2 : Commande mkdir ===');
-    
-    clearCaptures();
-    const context = createTestContext();
-    
-    // Pré-requis : vérifier que le contexte est sain (test rapide)
-    if (!context.fileSystem['/root']) {
-        console.error('❌ PRÉREQUIS ÉCHOUÉ: /root n\'existe pas');
+    try {
+        // 1. Tests du contexte (prérequis)
+        console.log('\n🏗️ Vérification du contexte...');
+        const contextResults = runTestSuite('Contexte d\'exécution', contextTests);
+        suites.push(contextResults);
+        
+        // 2. Tests du système de fichiers (prérequis) 
+        console.log('\n🗂️ Vérification du système de fichiers...');
+        const filesystemResults = runTestSuite('Système de fichiers', filesystemTests);
+        suites.push(filesystemResults);
+        
+        // Si les tests système échouent, arrêter là
+        if (!contextResults.success || !filesystemResults.success) {
+            console.log('\n❌ ARRÊT: Les tests du système ont échoué');
+            console.log('Les autres tests ne peuvent pas s\'exécuter sans un système sain.');
+            showFinalReport(suites);
+            return false;
+        }
+        
+        // 2. Tests de base pour mkdir
+        console.log('\n📁 Tests des commandes de base...');
+        const mkdirBasicResults = runTestSuite('mkdir - Tests de base', mkdirBasicTests);
+        suites.push(mkdirBasicResults);
+        
+        // 3. Tests des options pour mkdir
+        console.log('\n⚙️ Tests des options avancées...');
+        const mkdirOptionsResults = runTestSuite('mkdir - Tests des options', mkdirOptionsTests);
+        suites.push(mkdirOptionsResults);
+        
+    } catch (error) {
+        console.error('\n💥 ERREUR FATALE lors de l\'exécution des tests:', error.message);
+        console.error(error.stack);
         return false;
     }
     
-    // État initial
-    const initialFiles = Object.keys(context.fileSystem);
-    console.log('DEBUG - Fichiers avant mkdir:', initialFiles);
+    // Rapport final
+    const endTime = performance.now();
+    const totalTime = Math.round(endTime - startTime);
     
-    // Exécution de mkdir
-    console.log('DEBUG - Exécution: mkdir test-folder');
-    cmdMkdir(['test-folder'], context);
+    console.log(`\n⏱️ Temps total d'exécution: ${totalTime}ms`);
     
-    // État final
-    const finalFiles = Object.keys(context.fileSystem);
-    console.log('DEBUG - Fichiers après mkdir:', finalFiles);
+    const finalReport = showFinalReport(suites);
     
-    // Afficher les captures
-    showCaptures();
-    
-    // Vérifications
-    const hasOutput = capturedOutputs.length > 0;
-    const folderExists = context.fileSystem['/root/test-folder'] !== undefined;
-    const folderIsDir = context.fileSystem['/root/test-folder']?.type === 'dir';
-    
-    console.log('✓ mkdir a produit une sortie:', hasOutput ? 'OUI' : 'NON');
-    console.log('✓ Dossier /root/test-folder créé:', folderExists ? 'OUI' : 'NON');
-    console.log('✓ test-folder est un dossier:', folderIsDir ? 'OUI' : 'NON');
-    
-    // Vérification du message de succès
-    const hasSuccessMessage = capturedOutputs.some(output => 
-        output.text.includes('créé') && output.className === 'success'
-    );
-    console.log('✓ Message de succès capturé:', hasSuccessMessage ? 'OUI' : 'NON');
-    
-    // Résultat global du test 2
-    const test2Success = folderExists && folderIsDir;
-    
-    console.log(test2Success ? '✅ Test 2 RÉUSSI' : '❌ Test 2 ÉCHOUÉ');
-    console.log('');
-    
-    return test2Success;
-}
-
-// =============================================================================
-// LANCEUR DE TESTS
-// =============================================================================
-
-function runAllTests() {
-    console.log('🧪 Lancement de la suite de tests...\n');
-    
-    const results = [];
-    
-    // Test 1 : Système de fichiers
-    const test1Result = testFileSystemInitialization();
-    results.push({ name: 'Système de fichiers', success: test1Result });
-    
-    // Test 2 : Commande mkdir
-    const test2Result = testMkdirCommand();
-    results.push({ name: 'Commande mkdir', success: test2Result });
-    
-    // Résumé final
-    console.log('📊 RÉSUMÉ DES TESTS');
-    console.log('================');
-    
-    const passed = results.filter(r => r.success).length;
-    const total = results.length;
-    
-    results.forEach(result => {
-        const status = result.success ? '✅' : '❌';
-        console.log(`${status} ${result.name}`);
-    });
-    
-    console.log(`\n🎯 Score: ${passed}/${total} tests réussis`);
-    
-    if (passed === total) {
-        console.log('🎉 Tous les tests sont passés !');
+    // Message de conclusion
+    if (finalReport.success) {
+        console.log('\n🎉 FÉLICITATIONS! Tous les tests sont passés avec succès!');
+        console.log('Le système de terminal Linux fonctionne correctement.');
     } else {
-        console.log('⚠️ Certains tests ont échoué');
+        console.log('\n⚠️ ATTENTION: Certains tests ont échoué.');
+        console.log('Vérifiez les erreurs ci-dessus et corrigez le code.');
     }
     
-    return { passed, total, results };
+    return finalReport.success;
+}
+
+/**
+ * Fonction pour lancer seulement les tests du système
+ */
+function runSystemTests() {
+    console.log('🧪 TESTS DU SYSTÈME UNIQUEMENT');
+    console.log('=' .repeat(40));
+    
+    const suites = [];
+    
+    const contextResults = runTestSuite('Contexte d\'exécution', contextTests);
+    suites.push(contextResults);
+    
+    const filesystemResults = runTestSuite('Système de fichiers', filesystemTests);
+    suites.push(filesystemResults);
+    
+    showFinalReport(suites);
+    
+    return contextResults.success && filesystemResults.success;
+}
+
+/**
+ * Fonction pour lancer seulement les tests de mkdir
+ */
+function runMkdirTests() {
+    console.log('🧪 TESTS MKDIR UNIQUEMENT');
+    console.log('=' .repeat(40));
+    
+    const suites = [];
+    
+    // Tests de base
+    const basicResults = runTestSuite('mkdir - Tests de base', mkdirBasicTests);
+    suites.push(basicResults);
+    
+    // Tests des options
+    const optionsResults = runTestSuite('mkdir - Tests des options', mkdirOptionsTests);
+    suites.push(optionsResults);
+    
+    showFinalReport(suites);
+    
+    return basicResults.success && optionsResults.success;
+}
+
+/**
+ * Fonction pour des tests de développement/debug
+ */
+function runDevTests() {
+    console.log('🧪 TESTS DE DÉVELOPPEMENT');
+    console.log('=' .repeat(40));
+    
+    // Lancer seulement un sous-ensemble pour debug
+    const contextResults = runTestSuite('Contexte d\'exécution', contextTests.slice(0, 2));
+    const filesystemResults = runTestSuite('Système de fichiers', filesystemTests.slice(0, 2));
+    const basicResults = runTestSuite('mkdir - Tests de base', mkdirBasicTests.slice(0, 2));
+    
+    showFinalReport([contextResults, filesystemResults, basicResults]);
+    
+    return contextResults.success && filesystemResults.success && basicResults.success;
 }
 
 // =============================================================================
-// LANCEMENT
+// LANCEMENT AUTOMATIQUE
 // =============================================================================
 
+// Lancer tous les tests par défaut
+console.log('🚀 Démarrage automatique des tests...\n');
 runAllTests();
+
+// =============================================================================
+// EXPORT POUR USAGE EXTERNE
+// =============================================================================
+
+// Permettre d'appeler les fonctions depuis la console du navigateur
+if (typeof window !== 'undefined') {
+    window.testRunner = {
+        runAllTests,
+        runSystemTests,
+        runMkdirTests,
+        runDevTests
+    };
+    
+    console.log('\n💡 Fonctions disponibles dans la console:');
+    console.log('   window.testRunner.runAllTests()     - Tous les tests');
+    console.log('   window.testRunner.runSystemTests()  - Tests système uniquement');
+    console.log('   window.testRunner.runMkdirTests()   - Tests mkdir uniquement');
+    console.log('   window.testRunner.runDevTests()     - Tests de développement');
+}
+
+// Export pour Node.js ou autres environnements
+export { 
+    runAllTests, 
+    runSystemTests, 
+    runMkdirTests, 
+    runDevTests 
+};
