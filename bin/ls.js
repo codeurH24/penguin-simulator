@@ -12,8 +12,9 @@ import { addLine, showError } from '../modules/terminal.js';
 export function cmdLs(args, context) {
     const { fileSystem, currentPath } = context;
     
-    // Utiliser addLine du contexte si disponible, sinon celui par défaut
+    // Utiliser les fonctions du contexte si disponibles, sinon celles par défaut
     const outputFn = context?.addLine || addLine;
+    const errorFn = context?.showError || showError;
     
     // Gérer les options
     let longFormat = false;
@@ -35,12 +36,12 @@ export function cmdLs(args, context) {
     const lsPath = pathArgs.length > 0 ? resolvePath(pathArgs[0], currentPath) : currentPath;
     
     if (!fileSystem[lsPath]) {
-        showError(`ls: ${pathArgs[0] || lsPath}: Dossier introuvable`);
+        errorFn(`ls: ${pathArgs[0] || lsPath}: Dossier introuvable`);
         return;
     }
     
     if (fileSystem[lsPath].type !== 'dir') {
-        showError(`ls: ${pathArgs[0] || ''}: N'est pas un dossier`);
+        errorFn(`ls: ${pathArgs[0] || ''}: N'est pas un dossier`);
         return;
     }
 
@@ -83,8 +84,9 @@ export function cmdLs(args, context) {
         allItems.unshift(currentDir, parentDir);
     }
 
-    if (allItems.length === 0 && !showAll) {
-        return; // Dossier vide, ne rien afficher
+    // CORRECTION PRINCIPALE : Si le dossier est vide et pas d'option -a, ne rien afficher
+    if (allItems.length === 0) {
+        return; // Sortir silencieusement comme le vrai ls
     }
 
     if (longFormat) {
@@ -138,6 +140,11 @@ function calculateTotal(items, fileSystem, humanReadable) {
  * @param {Function} outputFn - Fonction d'affichage
  */
 function showSimpleFormat(items, fileSystem, outputFn) {
+    // CORRECTION : Vérifier qu'il y a bien des éléments à afficher
+    if (items.length === 0) {
+        return; // Ne rien afficher si la liste est vide
+    }
+
     // Créer une ligne avec les noms colorés
     const coloredNames = items.map(item => {
         let name, type;
@@ -163,13 +170,11 @@ function showSimpleFormat(items, fileSystem, outputFn) {
         }
     });
     
+    // CORRECTION : Vérifier encore une fois avant d'afficher
     if (coloredNames.length > 0) {
         // Afficher chaque élément avec sa couleur appropriée
         const line = coloredNames.join('  ');
         outputFn(line);
-        
-        // Version alternative : afficher chaque élément avec sa propre classe
-        // (nécessiterait une modification de addLine pour supporter HTML)
     }
 }
 
