@@ -1,4 +1,4 @@
-// bin/rm.js - Commande rm (remove) isolée avec support des wildcards
+// bin/rm.js - Commande rm (remove) isolée avec support des wildcards - Version améliorée
 // Équivalent de /bin/rm sous Debian avec globbing
 
 import { resolvePath } from '../modules/filesystem.js';
@@ -62,9 +62,13 @@ function expandGlob(pattern, currentPath, fileSystem) {
 export function cmdRm(args, context) {
     const { fileSystem, currentPath, saveFileSystem } = context;
     
+    // Utiliser les fonctions du contexte si disponibles, sinon celles par défaut
+    const errorFn = context?.showError || showError;
+    const successFn = context?.showSuccess || showSuccess;
+    
     if (args.length === 0) {
-        showError('rm: opérande manquant');
-        showError('Usage: rm [-r] [-f] <fichiers...>');
+        errorFn('rm: opérande manquant');
+        errorFn('Essayez « rm --help » pour plus d\'informations.');
         return;
     }
 
@@ -75,14 +79,14 @@ export function cmdRm(args, context) {
 
     // Extraire les options
     fileArgs = fileArgs.filter(arg => {
-        if (arg === '-r' || arg === '-R') {
+        if (arg === '-r' || arg === '-R' || arg === '--recursive') {
             recursive = true;
             return false;
-        } else if (arg === '-f') {
+        } else if (arg === '-f' || arg === '--force') {
             force = true;
             return false;
         } else if (arg.startsWith('-')) {
-            // Options combinées comme -rf
+            // Options combinées comme -rf, -fr
             if (arg.includes('r') || arg.includes('R')) recursive = true;
             if (arg.includes('f')) force = true;
             return false;
@@ -91,13 +95,22 @@ export function cmdRm(args, context) {
     });
 
     if (fileArgs.length === 0) {
-        showError('rm: aucun fichier spécifié');
+        if (!force) {
+            errorFn('rm: aucun fichier spécifié');
+            return;
+        }
+        // Avec -f, ignorer silencieusement l'absence de fichiers
         return;
     }
 
     // Expander tous les patterns avec wildcards
     let allFiles = [];
+    let hasWildcards = false;
+    
     fileArgs.forEach(arg => {
+        if (arg.includes('*') || arg.includes('?')) {
+            hasWildcards = true;
+        }
         const expandedFiles = expandGlob(arg, currentPath, fileSystem);
         allFiles = allFiles.concat(expandedFiles);
     });
@@ -107,14 +120,19 @@ export function cmdRm(args, context) {
 
     let deletedCount = 0;
     let notFoundCount = 0;
+    let hasPatternWithoutMatches = false;
 
     allFiles.forEach(fileName => {
         const fullPath = resolvePath(fileName, currentPath);
 
         if (!fileSystem[fullPath]) {
             notFoundCount++;
-            if (!force) {
-                showError(`rm: ${fileName}: Fichier ou dossier introuvable`);
+            
+            // Vérifier si c'est un pattern qui n'a pas matché
+            if (hasWildcards && fileArgs.some(arg => arg === fileName && (arg.includes('*') || arg.includes('?')))) {
+                hasPatternWithoutMatches = true;
+            } else if (!force) {
+                errorFn(`rm: impossible de supprimer '${fileName}': Aucun fichier ou dossier de ce type`);
             }
             return;
         }
@@ -123,33 +141,23 @@ export function cmdRm(args, context) {
 
         // Vérifier si c'est un dossier
         if (item.type === 'dir') {
-            // Vérifier si le dossier a du contenu
-            const hasContent = Object.keys(fileSystem).some(path => {
-                const prefix = fullPath === '/' ? '/' : fullPath + '/';
-                return path.startsWith(prefix) && path !== fullPath;
-            });
-
-            if (hasContent && !recursive) {
-                showError(`rm: ${fileName}: est un répertoire`);
+            // rm ne supprime JAMAIS les dossiers sans -r, même s'ils sont vides
+            // (pour supprimer un dossier vide, il faut utiliser rmdir)
+            if (!recursive) {
+                errorFn(`rm: impossible de supprimer '${fileName}': est un répertoire`);
                 return;
             }
 
-            // Supprimer récursivement si -r
-            if (recursive) {
-                const toDelete = Object.keys(fileSystem).filter(path => {
-                    return path === fullPath || path.startsWith(fullPath + '/');
-                });
+            // Supprimer récursivement avec -r
+            const toDelete = Object.keys(fileSystem).filter(path => {
+                return path === fullPath || path.startsWith(fullPath + '/');
+            });
 
-                toDelete.forEach(path => {
-                    delete fileSystem[path];
-                });
+            toDelete.forEach(path => {
+                delete fileSystem[path];
+            });
 
-                deletedCount++;
-            } else if (!hasContent) {
-                // Dossier vide, on peut le supprimer
-                delete fileSystem[fullPath];
-                deletedCount++;
-            }
+            deletedCount++;
         } else {
             // C'est un fichier
             delete fileSystem[fullPath];
@@ -157,23 +165,31 @@ export function cmdRm(args, context) {
         }
     });
 
-    // Afficher un résumé si des wildcards ont été utilisés
-    if (fileArgs.some(arg => arg.includes('*') || arg.includes('?'))) {
-        const totalRequested = allFiles.length;
-        if (deletedCount > 0 && notFoundCount === 0) {
-            // Succès complet
-        } else if (deletedCount === 0 && notFoundCount > 0) {
-            // Aucun fichier trouvé pour les patterns
-            if (!force) {
-                const originalPattern = fileArgs.find(arg => arg.includes('*') || arg.includes('?'));
-                showError(`rm: ${originalPattern}: Aucun fichier ne correspond au motif`);
+    // Gestion des erreurs pour les wildcards sans matches
+    if (hasPatternWithoutMatches && !force) {
+        const originalPatterns = fileArgs.filter(arg => arg.includes('*') || arg.includes('?'));
+        originalPatterns.forEach(pattern => {
+            // Vérifier si le pattern n'a vraiment aucun match
+            const expandedForPattern = expandGlob(pattern, currentPath, fileSystem);
+            if (expandedForPattern.length === 1 && expandedForPattern[0] === pattern) {
+                errorFn(`rm: impossible de supprimer '${pattern}': Aucun fichier ou dossier de ce type`);
             }
-        }
+        });
     }
 
     // Sauvegarder seulement si quelque chose a été supprimé
     if (deletedCount > 0) {
         saveFileSystem();
+        
+        // rm est normalement silencieux en cas de succès
+        // Afficher un message seulement en mode debug si disponible
+        if (context?.debug && deletedCount > 0) {
+            if (deletedCount === 1) {
+                successFn('1 élément supprimé');
+            } else {
+                successFn(`${deletedCount} éléments supprimés`);
+            }
+        }
     }
 }
 
