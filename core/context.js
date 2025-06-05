@@ -1,19 +1,12 @@
-// context.js - Module de gestion du contexte d'exécution bash
-// Gère de manière autonome tout ce qui concerne le contexte
+// context.js - Module de gestion du contexte d'exécution bash (objet de programmation)
+// Chaque contexte est un objet indépendant avec ses propres données
 
 import { getCurrentUser, initUserSystem } from '../modules/users.js';
 import { updatePrompt, addLine } from '../modules/terminal.js';
 import { saveData, loadData, isDBReady } from '../modules/storage.js';
 
-// Variables globales internes au module
-let fileSystem = {
-    '/': createDirectoryEntry(),
-    '/home': createDirectoryEntry(),
-    '/root': createDirectoryEntry()
-};
-
-let currentPath = '/root';
-let shellVariables = {}; // Variables du shell
+// Instance globale pour l'application principale
+let globalContextInstance = null;
 
 /**
  * Crée une entrée de répertoire avec de vraies métadonnées
@@ -35,121 +28,177 @@ function createDirectoryEntry() {
 }
 
 /**
- * Initialise le système de fichiers par défaut
+ * Classe Context - Chaque instance est indépendante
  */
-function initDefaultFileSystem() {
-    fileSystem = {
-        '/': createDirectoryEntry(),
-        '/home': createDirectoryEntry(),
-        '/root': createDirectoryEntry()
-    };
-}
-
-/**
- * Fonction pour changer le répertoire courant
- * @param {string} newPath - Nouveau chemin
- */
-function setCurrentPath(newPath) {
-    const oldPath = currentPath;
-    currentPath = newPath;
-    
-    // Mettre à jour OLDPWD
-    if (!shellVariables) {
-        shellVariables = {};
-    }
-    shellVariables.OLDPWD = oldPath;
-    
-    updatePrompt(currentPath, createContext());
-}
-
-/**
- * Fonction pour sauvegarder le système de fichiers
- * @returns {Promise<void>}
- */
-async function saveFileSystem() {
-    if (isDBReady()) {
-        await saveData({ fileSystem, currentPath, variables: shellVariables });
-    }
-}
-
-/**
- * Fonction pour charger le système de fichiers depuis IndexedDB
- * @returns {Promise<void>}
- */
-async function loadFileSystem() {
-    const data = await loadData();
-    if (data) {
-        fileSystem = data.fileSystem || {};
-        currentPath = data.currentPath || '/root';
-        shellVariables = data.variables || {};
+class Context {
+    constructor(options = {}) {
+        // Données internes à cette instance
+        this.fileSystem = {
+            '/': createDirectoryEntry(),
+            '/home': createDirectoryEntry(),
+            '/root': createDirectoryEntry()
+        };
+        this.currentPath = '/root';
+        this.shellVariables = { OLDPWD: '/root' };
+        this.isTestMode = options.testMode || false;
         
-        // S'assurer qu'OLDPWD est initialisé après le chargement
-        if (!shellVariables.OLDPWD) {
-            shellVariables.OLDPWD = currentPath;
+        // Initialiser les fichiers système
+        initUserSystem(this.fileSystem);
+    }
+    
+    /**
+     * Change le répertoire courant
+     * @param {string} newPath - Nouveau chemin
+     */
+    setCurrentPath(newPath) {
+        console.log('DEBUG Class setCurrentPath this.isTestMode', this.isTestMode)
+        const oldPath = this.currentPath;
+        this.currentPath = newPath;
+        this.shellVariables.OLDPWD = oldPath;
+
+        
+        console.log('DEBUG Class setCurrentPath this.currentPath', this.currentPath)
+        
+        // Mettre à jour le prompt seulement si pas en mode test
+        if (!this.isTestMode) {
+            updatePrompt(this.currentPath, this.createContextData());
+        } else {
+            
+        }
+    }
+
+    /**
+     * Obtient le chemin courant
+     * @returns {string} - Chemin courant de cette instance
+     */
+    getCurrentPath() {
+        return this.currentPath;
+    }
+    
+    /**
+     * Sauvegarde le système de fichiers
+     * @returns {Promise<void>}
+     */
+    async saveFileSystem() {
+        // Sauvegarder seulement si pas en mode test et IndexedDB disponible
+        if (!this.isTestMode && isDBReady()) {
+            await saveData({
+                fileSystem: this.fileSystem,
+                currentPath: this.currentPath,
+                variables: this.shellVariables
+            });
+        }
+    }
+    
+    /**
+     * Charge le système de fichiers depuis IndexedDB
+     * @returns {Promise<void>}
+     */
+    async loadFileSystem() {
+        const data = await loadData();
+        if (data) {
+            this.fileSystem = data.fileSystem || this.fileSystem;
+            this.currentPath = data.currentPath || '/root';
+            this.shellVariables = data.variables || { OLDPWD: '/root' };
+            
+            // S'assurer qu'OLDPWD est initialisé
+            if (!this.shellVariables.OLDPWD) {
+                this.shellVariables.OLDPWD = this.currentPath;
+            }
+            
+            // Réinitialiser les fichiers système si nécessaire
+            if (!this.fileSystem['/etc/passwd']) {
+                console.log('Fichiers système manquants, re-initialisation...');
+                initUserSystem(this.fileSystem);
+            }
+            
+            if (!this.isTestMode) {
+                updatePrompt(this.currentPath, this.createContextData());
+                addLine('📂 Données restaurées depuis la dernière session', 'prompt');
+            }
+        } else {
+            // Première fois - le système est déjà initialisé dans le constructeur
+            if (!this.isTestMode) {
+                addLine('🆕 Nouveau système initialisé', 'prompt');
+            }
+        }
+    }
+    
+    /**
+     * Initialise le contexte (pour l'application principale)
+     * @returns {Promise<void>}
+     */
+    async initContext() {
+        const dbSuccess = await isDBReady();
+        if (dbSuccess) {
+            await this.loadFileSystem();
+            if (!this.isTestMode) {
+                addLine('💾 IndexedDB connecté - persistance activée', 'prompt');
+            }
+        } else {
+            if (!this.isTestMode) {
+                addLine('⚠️ IndexedDB indisponible - mode mémoire', 'error');
+            }
         }
         
-        // IMPORTANT: S'assurer que les fichiers système existent après le chargement
-        if (!fileSystem['/etc/passwd']) {
-            console.log('Fichiers système manquants après chargement, re-initialisation...');
-            initUserSystem(fileSystem);
+        // Vérification finale
+        if (!this.fileSystem['/etc/passwd']) {
+            console.error('ERREUR: /etc/passwd manquant, re-initialisation forcée');
+            initUserSystem(this.fileSystem);
         }
         
-        updatePrompt(currentPath, createContext());
-        addLine('📂 Données restaurées depuis la dernière session', 'prompt');
+        if (!this.shellVariables.OLDPWD) {
+            this.shellVariables.OLDPWD = this.currentPath;
+        }
+    }
+    
+    /**
+     * Crée l'objet de données du contexte (pour compatibilité avec l'API existante)
+     * @returns {Object} - Données du contexte
+     */
+    createContextData() {
+        const currentUser = getCurrentUser();
+        
+        return {
+            fileSystem: this.fileSystem,
+            currentPath: this.currentPath,
+            getCurrentPath: () => this.getCurrentPath.bind(this)(),
+            setCurrentPath: (newPath) => this.setCurrentPath.bind(this)(newPath),
+            saveFileSystem: () => this.saveFileSystem(),
+            variables: this.shellVariables,
+            currentUser
+        };
+    }
+}
+
+/**
+ * Crée une nouvelle instance de contexte
+ * @param {Object} options - Options { testMode: boolean }
+ * @returns {Object} - Contexte pour l'exécution des commandes
+ */
+export function createContext(options = {}) {
+    if (options.testMode) {
+        // Pour les tests, créer une nouvelle instance à chaque fois
+        const testContext = new Context({ testMode: true });
+        return testContext.createContextData();
     } else {
-        // Première fois - initialiser le système de fichiers par défaut
-        initDefaultFileSystem();
-        initUserSystem(fileSystem);
-        shellVariables.OLDPWD = currentPath;
-        addLine('🆕 Nouveau système initialisé', 'prompt');
+        // Pour l'application principale, utiliser l'instance globale
+        if (!globalContextInstance) {
+            globalContextInstance = new Context({ testMode: false });
+        }
+        return globalContextInstance.createContextData();
     }
 }
 
 /**
- * Crée le contexte pour l'exécution des commandes
- * Cette fonction est complètement autonome
- * @returns {Object} - Contexte complet pour l'exécution des commandes
- */
-export function createContext() {
-    const currentUser = getCurrentUser();
-    
-    return {
-        fileSystem,
-        currentPath,
-        setCurrentPath,
-        saveFileSystem,
-        variables: shellVariables,
-        currentUser
-    };
-}
-
-/**
- * Initialise le contexte (appelé au démarrage)
+ * Initialise le contexte global (appelé au démarrage de l'application)
  * @returns {Promise<void>}
  */
 export async function initContext() {
-    const dbSuccess = await isDBReady();
-    if (dbSuccess) {
-        await loadFileSystem();
-        addLine('💾 IndexedDB connecté - persistance activée', 'prompt');
-    } else {
-        // Si pas de DB, initialiser le système par défaut
-        initDefaultFileSystem();
-        initUserSystem(fileSystem);
-        shellVariables.OLDPWD = currentPath;
-        addLine('⚠️ IndexedDB indisponible - mode mémoire', 'error');
+    if (!globalContextInstance) {
+        globalContextInstance = new Context({ testMode: false });
     }
-    
-    // Vérification finale que les fichiers système existent
-    if (!fileSystem['/etc/passwd']) {
-        console.error('ERREUR: /etc/passwd manquant, re-initialisation forcée');
-        initUserSystem(fileSystem);
-    }
-    
-    // S'assurer qu'OLDPWD est toujours initialisé
-    if (!shellVariables.OLDPWD) {
-        shellVariables.OLDPWD = currentPath;
-    }
+    await globalContextInstance.initContext();
 }
 
 /**
@@ -157,7 +206,10 @@ export async function initContext() {
  * @returns {string} - Chemin courant
  */
 export function getCurrentPath() {
-    return currentPath;
+    if (!globalContextInstance) {
+        return '/root';
+    }
+    return globalContextInstance.currentPath;
 }
 
 /**
@@ -165,5 +217,8 @@ export function getCurrentPath() {
  * @returns {Object} - Variables du shell
  */
 export function getShellVariables() {
-    return shellVariables;
+    if (!globalContextInstance) {
+        return { OLDPWD: '/root' };
+    }
+    return globalContextInstance.shellVariables;
 }

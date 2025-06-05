@@ -1,5 +1,6 @@
-// test-cases/lib/context.js - Infrastructure de contexte de test
+// test-cases/lib/context.js - Infrastructure de contexte de test (version améliorée)
 import { createContext } from '../../core/context.js';
+// import _ from 'https://cdn.jsdelivr.net/npm/lodash-es@4.17.21/lodash.js';
 
 // Variable globale pour capturer les sorties
 let capturedOutputs = [];
@@ -22,17 +23,18 @@ function captureShowSuccess(message) {
 
 /**
  * Crée un contexte de test avec fonctions de capture injectées
+ * NOUVEAU: Force toujours le chemin initial à /root pour des tests propres
  * @returns {Object} - Contexte de test prêt à utiliser
  */
 export function createTestContext() {
-    const context = createContext();
+    const testContext = createContext({ testMode: true });
     
-    // Injecter nos fonctions de capture
-    context.addLine = captureAddLine;
-    context.showError = captureShowError;
-    context.showSuccess = captureShowSuccess;
+    testContext.addLine = captureAddLine;
+    testContext.showError = captureShowError;
+    testContext.showSuccess = captureShowSuccess;
+    testContext.test = true;
     
-    return context;
+    return testContext;
 }
 
 /**
