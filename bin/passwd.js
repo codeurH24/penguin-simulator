@@ -1,7 +1,15 @@
 // bin/passwd.js - Commande passwd avec vérification immédiate de l'ancien mot de passe (3 tentatives)
 // Équivalent de /usr/bin/passwd sous Debian
 
-import { changePassword, getCurrentUser, getUserInfo, isRoot } from '../modules/users.js';
+import { 
+    changePassword, 
+    lockUserAccount, 
+    unlockUserAccount, 
+    deleteUserPassword,
+    getCurrentUser, 
+    getUserInfo, 
+    isRoot 
+} from '../modules/users.js';
 import { showError, showSuccess, addLine, startPasswordInput } from '../modules/terminal.js';
 
 /**
@@ -97,17 +105,17 @@ export function cmdPasswd(args, context) {
     try {
         if (lock) {
             // Verrouiller le compte
-            lockAccount(targetUsername, fileSystem, saveFileSystem);
+            lockUserAccount(targetUsername, fileSystem, saveFileSystem);
             showSuccess(`Mot de passe verrouillé pour '${targetUsername}'`);
             
         } else if (unlock) {
             // Déverrouiller le compte
-            unlockAccount(targetUsername, fileSystem, saveFileSystem);
+            unlockUserAccount(targetUsername, fileSystem, saveFileSystem);
             showSuccess(`Mot de passe déverrouillé pour '${targetUsername}'`);
             
         } else if (delete_) {
             // Supprimer le mot de passe
-            deletePassword(targetUsername, fileSystem, saveFileSystem);
+            deleteUserPassword(targetUsername, fileSystem, saveFileSystem);
             showSuccess(`Mot de passe supprimé pour '${targetUsername}'`);
             showSuccess('⚠️  Attention: connexion sans mot de passe possible');
             
@@ -115,14 +123,14 @@ export function cmdPasswd(args, context) {
             // Changer le mot de passe
             const requireOldPassword = (targetUsername === currentUser.username) && !isRoot();
             
-            // NOUVEAU : Déterminer si le compte a un mot de passe valide
+            // Déterminer si le compte a un mot de passe valide
             let accountHasValidPassword = true;
             if (requireOldPassword) {
                 accountHasValidPassword = checkIfUserHasValidPassword(targetUsername, fileSystem);
             }
             
             // Créer la fonction de vérification de l'ancien mot de passe
-            const verifyOldPasswordCallback = requireOldPassword ? 
+            const verifyOldPasswordCallback = requireOldPassword ?
                 (username, oldPassword) => verifyOldPassword(username, oldPassword, fileSystem) : 
                 null;
             
@@ -133,7 +141,7 @@ export function cmdPasswd(args, context) {
                 (oldPassword, newPassword) => {
                     handlePasswordChangeSuccess(targetUsername, oldPassword, newPassword, fileSystem, saveFileSystem);
                 },
-                accountHasValidPassword // NOUVEAU paramètre
+                accountHasValidPassword
             );
         }
         
@@ -259,83 +267,4 @@ function showPasswordStatus(username, fileSystem) {
     addLine('  P  - Mot de passe défini', 'info');
     addLine('  L  - Mot de passe verrouillé', 'info');
     addLine('  NP - Aucun mot de passe', 'info');
-}
-
-/**
- * Verrouille le compte d'un utilisateur
- * @param {string} username - Nom d'utilisateur
- * @param {Object} fileSystem - Système de fichiers
- * @param {Function} saveFileSystem - Fonction de sauvegarde
- */
-function lockAccount(username, fileSystem, saveFileSystem) {
-    const shadowFile = fileSystem['/etc/shadow'];
-    const lines = shadowFile.content.split('\n');
-    
-    const newLines = lines.map(line => {
-        if (line.startsWith(username + ':')) {
-            const parts = line.split(':');
-            if (!parts[1].startsWith('!')) {
-                parts[1] = '!' + parts[1]; // Préfixer avec ! pour verrouiller
-            }
-            return parts.join(':');
-        }
-        return line;
-    });
-    
-    shadowFile.content = newLines.join('\n');
-    shadowFile.size = shadowFile.content.length;
-    shadowFile.modified = new Date();
-    saveFileSystem();
-}
-
-/**
- * Déverrouille le compte d'un utilisateur
- * @param {string} username - Nom d'utilisateur
- * @param {Object} fileSystem - Système de fichiers
- * @param {Function} saveFileSystem - Fonction de sauvegarde
- */
-function unlockAccount(username, fileSystem, saveFileSystem) {
-    const shadowFile = fileSystem['/etc/shadow'];
-    const lines = shadowFile.content.split('\n');
-    
-    const newLines = lines.map(line => {
-        if (line.startsWith(username + ':')) {
-            const parts = line.split(':');
-            if (parts[1].startsWith('!')) {
-                parts[1] = parts[1].substring(1); // Retirer le ! pour déverrouiller
-            }
-            return parts.join(':');
-        }
-        return line;
-    });
-    
-    shadowFile.content = newLines.join('\n');
-    shadowFile.size = shadowFile.content.length;
-    shadowFile.modified = new Date();
-    saveFileSystem();
-}
-
-/**
- * Supprime le mot de passe d'un utilisateur
- * @param {string} username - Nom d'utilisateur
- * @param {Object} fileSystem - Système de fichiers
- * @param {Function} saveFileSystem - Fonction de sauvegarde
- */
-function deletePassword(username, fileSystem, saveFileSystem) {
-    const shadowFile = fileSystem['/etc/shadow'];
-    const lines = shadowFile.content.split('\n');
-    
-    const newLines = lines.map(line => {
-        if (line.startsWith(username + ':')) {
-            const parts = line.split(':');
-            parts[1] = ''; // Mot de passe vide
-            return parts.join(':');
-        }
-        return line;
-    });
-    
-    shadowFile.content = newLines.join('\n');
-    shadowFile.size = shadowFile.content.length;
-    shadowFile.modified = new Date();
-    saveFileSystem();
 }
