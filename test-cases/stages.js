@@ -4,6 +4,7 @@ import { stages as commandTouchStages } from './stages/commands/touch.stages.js'
 import { stages as commandRmStages } from './stages/commands/rm.stages.js';
 import { stages as commandMvStages } from './stages/commands/mv.stages.js';
 import { stages as commandCdStages } from './stages/commands/cd.stages.js';
+import { stages as commandPwdStages } from './stages/commands/pwd.stages.js';
 
 export function stages(suites) {
     commandMkdirStages(suites);
@@ -12,4 +13,5 @@ export function stages(suites) {
     commandRmStages(suites);
     commandMvStages(suites);
     commandCdStages(suites);
+    commandPwdStages(suites);
 }
