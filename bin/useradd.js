@@ -1,7 +1,7 @@
-// bin/useradd.js - Commande useradd (ajouter un utilisateur)
+// bin/useradd.js - Commande useradd (ajouter un utilisateur) - Version corrigée
 // Équivalent de /usr/sbin/useradd sous Debian
 
-import { addUser, isRoot, initUserSystem } from '../modules/users.js';
+import { addUser, isRoot, initUserSystem, parsePasswdFile } from '../modules/users.js';
 import { showError, showSuccess } from '../modules/terminal.js';
 
 /**
@@ -12,9 +12,13 @@ import { showError, showSuccess } from '../modules/terminal.js';
 export function cmdUseradd(args, context) {
     const { fileSystem, saveFileSystem } = context;
     
+    // Utiliser les fonctions du contexte si disponibles, sinon celles par défaut
+    const errorFn = context?.showError || showError;
+    const successFn = context?.showSuccess || showSuccess;
+    
     // Vérifier les permissions (seul root peut ajouter des utilisateurs)
     if (!isRoot()) {
-        showError('useradd: Seul root peut ajouter des utilisateurs au système');
+        errorFn('useradd: Seul root peut ajouter des utilisateurs au système');
         return;
     }
     
@@ -25,16 +29,17 @@ export function cmdUseradd(args, context) {
         saveFileSystem();
     }
     
+    // Vérifier qu'au moins un nom d'utilisateur est fourni
     if (args.length === 0) {
-        showError('useradd: nom d\'utilisateur manquant');
-        showError('Usage: useradd [options] <nom_utilisateur>');
-        showError('Options:');
-        showError('  -u UID     Spécifier l\'UID de l\'utilisateur');
-        showError('  -g GID     Spécifier le GID principal');
-        showError('  -d HOME    Spécifier le répertoire home');
-        showError('  -s SHELL   Spécifier le shell de connexion');
-        showError('  -c GECOS   Spécifier le commentaire (nom complet)');
-        showError('  -m         Créer le répertoire home (défaut)');
+        errorFn('useradd: nom d\'utilisateur manquant');
+        errorFn('Usage: useradd [options] <nom_utilisateur>');
+        errorFn('Options:');
+        errorFn('  -u UID     Spécifier l\'UID de l\'utilisateur');
+        errorFn('  -g GID     Spécifier le GID principal');
+        errorFn('  -d HOME    Spécifier le répertoire home');
+        errorFn('  -s SHELL   Spécifier le shell de connexion');
+        errorFn('  -c GECOS   Spécifier le commentaire (nom complet)');
+        errorFn('  -m         Créer le répertoire home (défaut)');
         return;
     }
 
@@ -47,17 +52,21 @@ export function cmdUseradd(args, context) {
         const arg = args[i];
         
         if (arg === '-u' && i + 1 < args.length) {
-            options.uid = parseInt(args[++i]);
-            if (isNaN(options.uid) || options.uid < 0) {
-                showError(`useradd: UID invalide '${args[i]}'`);
+            const uidStr = args[++i];
+            const uid = parseInt(uidStr);
+            if (isNaN(uid) || uid < 0) {
+                errorFn(`useradd: UID invalide '${uidStr}'`);
                 return;
             }
+            options.uid = uid;
         } else if (arg === '-g' && i + 1 < args.length) {
-            options.gid = parseInt(args[++i]);
-            if (isNaN(options.gid) || options.gid < 0) {
-                showError(`useradd: GID invalide '${args[i]}'`);
+            const gidStr = args[++i];
+            const gid = parseInt(gidStr);
+            if (isNaN(gid) || gid < 0) {
+                errorFn(`useradd: GID invalide '${gidStr}'`);
                 return;
             }
+            options.gid = gid;
         } else if (arg === '-d' && i + 1 < args.length) {
             options.home = args[++i];
         } else if (arg === '-s' && i + 1 < args.length) {
@@ -69,31 +78,46 @@ export function cmdUseradd(args, context) {
         } else if (arg === '-M') {
             createHome = false;
         } else if (arg.startsWith('-')) {
-            showError(`useradd: option inconnue '${arg}'`);
+            errorFn(`useradd: option inconnue '${arg}'`);
             return;
         } else {
             if (username === null) {
                 username = arg;
             } else {
-                showError('useradd: trop d\'arguments');
+                errorFn('useradd: trop d\'arguments');
                 return;
             }
         }
     }
     
     if (!username) {
-        showError('useradd: nom d\'utilisateur manquant');
+        errorFn('useradd: nom d\'utilisateur manquant');
         return;
     }
     
-    // Valider le nom d'utilisateur
-    if (!/^[a-z_][a-z0-9_-]*[$]?$/.test(username) || username.length > 32) {
-        showError(`useradd: nom d'utilisateur invalide '${username}'`);
-        showError('Le nom d\'utilisateur doit :');
-        showError('- Commencer par une lettre minuscule ou _');
-        showError('- Contenir uniquement des lettres minuscules, chiffres, _ et -');
-        showError('- Faire au maximum 32 caractères');
+    // Valider le nom d'utilisateur selon les règles Unix
+    if (!isValidUsername(username)) {
+        errorFn(`useradd: nom d'utilisateur invalide '${username}'`);
+        errorFn('Le nom d\'utilisateur doit :');
+        errorFn('- Commencer par une lettre minuscule ou _');
+        errorFn('- Contenir uniquement des lettres minuscules, chiffres, _ et -');
+        errorFn('- Faire au maximum 32 caractères');
         return;
+    }
+    
+    // Vérifier si l'utilisateur existe déjà
+    const users = parsePasswdFile(fileSystem);
+    if (users.find(u => u.username === username)) {
+        errorFn(`useradd: l'utilisateur '${username}' existe déjà`);
+        return;
+    }
+    
+    // Vérifier si l'UID est déjà utilisé (si spécifié)
+    if (options.uid !== undefined) {
+        if (users.find(u => u.uid === options.uid)) {
+            errorFn(`useradd: l'UID ${options.uid} est déjà utilisé`);
+            return;
+        }
     }
     
     try {
@@ -106,23 +130,32 @@ export function cmdUseradd(args, context) {
         
         const newUser = addUser(username, options, fileSystem, saveFileSystem);
         
-        showSuccess(`Utilisateur '${username}' ajouté avec succès`);
-        showSuccess(`UID: ${newUser.uid}, GID: ${newUser.gid}`);
-        showSuccess(`Répertoire home: ${newUser.home}`);
-        showSuccess(`Shell: ${newUser.shell}`);
-        
-        if (createHome) {
-            showSuccess(`Répertoire home créé: ${newUser.home}`);
-        }
-        
-        // Afficher les prochaines étapes
-        showSuccess('');
-        showSuccess('Prochaines étapes recommandées:');
-        showSuccess(`- Définir un mot de passe: passwd ${username}`);
-        showSuccess(`- Se connecter: su ${username}`);
+        // COMPORTEMENT UNIX: useradd est SILENCIEUX en cas de succès
+        // Les tests s'attendent à aucune sortie pour un succès
         
     } catch (error) {
-        showError('ERREUR useradd: ' + error.message);
+        errorFn('useradd: ' + error.message);
         console.error('Erreur détaillée useradd:', error);
     }
+}
+
+/**
+ * Valide un nom d'utilisateur selon les règles Unix/Linux
+ * @param {string} username - Nom d'utilisateur à valider
+ * @returns {boolean} - true si le nom est valide
+ */
+function isValidUsername(username) {
+    // Règles Unix pour les noms d'utilisateur :
+    // - Doit commencer par une lettre minuscule ou underscore
+    // - Peut contenir des lettres minuscules, chiffres, underscores et tirets
+    // - Peut se terminer par un $ (pour les comptes de machine)
+    // - Maximum 32 caractères
+    
+    if (!username || username.length === 0 || username.length > 32) {
+        return false;
+    }
+    
+    // Regex selon les standards POSIX
+    const validPattern = /^[a-z_][a-z0-9_-]*[$]?$/;
+    return validPattern.test(username);
 }
