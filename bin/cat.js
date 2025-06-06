@@ -1,4 +1,4 @@
-// bin/cat.js - Commande cat (concatenate) isolée
+// bin/cat.js - Commande cat (concatenate) isolée - CORRIGER CETTE PARTIE
 // Équivalent de /bin/cat sous Debian
 
 import { resolvePath } from '../modules/filesystem.js';
@@ -14,13 +14,14 @@ export function cmdCat(args, context) {
     const { fileSystem, getCurrentPath } = context;
     const currentPath = getCurrentPath();
     
-    // Utiliser addLine du contexte si disponible, sinon celui par défaut
+    // Utiliser addLine et showError du contexte si disponibles, sinon ceux par défaut
     const outputFn = context?.addLine || addLine;
+    const errorFn = context?.showError || showError;
     
     // Si aucun argument, lire depuis stdin (simulation)
     if (args.length === 0) {
-        showError('cat: lecture depuis stdin non supportée');
-        showError('Usage: cat <fichier1> [fichier2] ...');
+        errorFn('cat: lecture depuis stdin non supportée');
+        errorFn('Usage: cat <fichier1> [fichier2] ...');
         return;
     }
     
@@ -42,7 +43,7 @@ export function cmdCat(args, context) {
     });
     
     if (fileArgs.length === 0) {
-        showError('cat: aucun fichier spécifié');
+        errorFn('cat: aucun fichier spécifié');
         return;
     }
     
@@ -53,13 +54,13 @@ export function cmdCat(args, context) {
         const filePath = resolvePath(fileName, currentPath);
         
         if (!fileSystem[filePath]) {
-            showError(`cat: ${fileName}: Fichier introuvable`);
+            errorFn(`cat: ${fileName}: Fichier introuvable`);
             return;
         }
         
         const file = fileSystem[filePath];
         if (file.type !== 'file') {
-            showError(`cat: ${fileName}: N'est pas un fichier`);
+            errorFn(`cat: ${fileName}: N'est pas un fichier`);
             return;
         }
         
@@ -98,59 +99,5 @@ export function cmdCat(args, context) {
         } else {
             // Fichier vide - rien à afficher
         }
-    });
-}
-
-/**
- * Formate les caractères non-imprimables pour l'option -v
- * @param {string} text - Texte à formater
- * @returns {string} - Texte avec caractères non-imprimables visibles
- */
-function formatNonPrintable(text) {
-    return text
-        .replace(/\t/g, '^I')          // Tabulation
-        .replace(/\r/g, '^M')          // Retour chariot
-        .replace(/\x00/g, '^@')        // Caractère null
-        .replace(/\x1b/g, '^[')        // Escape
-        .replace(/\x7f/g, '^?')        // DEL
-        // Afficher les caractères de contrôle (0x01-0x1F sauf \t)
-        .replace(/[\x01-\x08\x0b-\x0c\x0e-\x1f]/g, (match) => {
-            return '^' + String.fromCharCode(match.charCodeAt(0) + 64);
-        });
-}
-
-/**
- * Version alternative de cat qui lit depuis une chaîne (pour les pipes futurs)
- * @param {string} content - Contenu à afficher
- * @param {Object} options - Options de formatage
- * @param {Function} outputFn - Fonction d'affichage
- */
-export function catFromString(content, options = {}, outputFn = addLine) {
-    const { showLineNumbers = false, showNonPrintable = false, showEnds = false } = options;
-    
-    if (!content) return;
-    
-    const lines = content.split('\n');
-    let lineNumber = 1;
-    
-    lines.forEach((line, lineIndex) => {
-        let formattedLine = line;
-        
-        if (showNonPrintable) {
-            formattedLine = formatNonPrintable(formattedLine);
-        }
-        
-        if (showEnds && lineIndex < lines.length - 1) {
-            formattedLine += '$';
-        }
-        
-        if (showLineNumbers) {
-            if (line || lineIndex < lines.length - 1) {
-                formattedLine = lineNumber.toString().padStart(6) + '  ' + formattedLine;
-                lineNumber++;
-            }
-        }
-        
-        outputFn(formattedLine);
     });
 }

@@ -8,6 +8,7 @@ import { stages as commandMvStages } from './stages/commands/mv.stages.js';
 import { stages as commandCdStages } from './stages/commands/cd.stages.js';
 import { stages as commandPwdStages } from './stages/commands/pwd.stages.js';
 import { stages as commandEchoStages } from './stages/commands/echo.stages.js';
+import { stages as commandCatStages } from './stages/commands/cat.stages.js';
 
 export function stages(suites) {
     bashVariablesStages(suites);
@@ -19,4 +20,5 @@ export function stages(suites) {
     commandCdStages(suites);
     commandPwdStages(suites);
     commandEchoStages(suites);
+    commandCatStages(suites);
 }
