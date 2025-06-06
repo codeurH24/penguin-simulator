@@ -10,7 +10,9 @@ import { addLine, showError } from '../modules/terminal.js';
  * @param {Object} context - Contexte (fileSystem, currentPath, peut contenir addLine personnalisé)
  */
 export function cmdCat(args, context) {
-    const { fileSystem, currentPath } = context;
+
+    const { fileSystem, getCurrentPath } = context;
+    const currentPath = getCurrentPath();
     
     // Utiliser addLine du contexte si disponible, sinon celui par défaut
     const outputFn = context?.addLine || addLine;

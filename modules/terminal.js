@@ -38,7 +38,7 @@ function getEnvironmentVars(context = null) {
         // Variables d'environnement (comme dans bash-variables.js)
         const envVars = {
             'HOME': currentUser.home,
-            'PWD': context.currentPath || '/',
+            'PWD': context.getCurrentPath() || '/',
             'USER': currentUser.username,
             'SHELL': currentUser.shell,
             'HOSTNAME': 'bash',
@@ -334,7 +334,8 @@ function resolvePathForCompletion(path, currentPath) {
  * @returns {Object} - {completed: string, suggestions: Array}
  */
 function handleTabCompletion(input, context) {
-    const { fileSystem, currentPath } = context;
+    const { fileSystem, getCurrentPath } = context;
+    const currentPath = getCurrentPath();
     const parts = input.split(' ');
     const lastPart = parts[parts.length - 1];
     
@@ -372,7 +373,6 @@ function handleTabCompletion(input, context) {
             file.startsWith(filePart)
         );
         
-        console.log('Files found:', files, 'in dir:', dirPath, 'filePart:', filePart); // Debug
         
         if (files.length === 1) {
             const basePath = lastSlash >= 0 ? pathPart.substring(0, lastSlash + 1) : '';
@@ -533,7 +533,7 @@ export function setupCommandHistory(handleHistoryUp, handleHistoryDown, getConte
             e.preventDefault(); // Empêcher le comportement par défaut de Tab
             
             const context = getContext();
-            if (context && context.fileSystem && context.currentPath) {
+            if (context && context.fileSystem && context.getCurrentPath()) {
                 const currentInput = commandInput.value;
                 const { completed, suggestions } = handleTabCompletion(currentInput, context);
                 

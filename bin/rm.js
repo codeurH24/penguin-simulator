@@ -7,8 +7,8 @@ import { showError, showSuccess } from '../modules/terminal.js';
 /**
  * Expanse un pattern en liste de fichiers matchants (globbing)
  * @param {string} pattern - Pattern avec wildcards (*.txt, dir*, etc.)
- * @param {string} currentPath - Répertoire courant
- * @param {Object} fileSystem - Système de fichiers
+ * @param {string} currentPath - Repertoire courant
+ * @param {Object} fileSystem - Systeme de fichiers
  * @returns {Array} - Liste des fichiers matchants
  */
 function expandGlob(pattern, currentPath, fileSystem) {
@@ -17,33 +17,44 @@ function expandGlob(pattern, currentPath, fileSystem) {
         return [pattern];
     }
     
-    // Résoudre le répertoire de base du pattern
-    const patternPath = pattern.includes('/') ? pattern : currentPath + '/' + pattern;
+    // Resoudre le repertoire de base du pattern
+    let patternPath;
+    if (pattern.includes('/')) {
+        if (pattern.startsWith('/')) {
+            patternPath = pattern;
+        } else {
+            patternPath = currentPath + '/' + pattern;
+        }
+    } else {
+        patternPath = currentPath + '/' + pattern;
+    }
+    
     const basePath = patternPath.substring(0, patternPath.lastIndexOf('/')) || currentPath;
     const filePattern = patternPath.substring(patternPath.lastIndexOf('/') + 1);
     
-    // Créer une regex à partir du pattern
+    // Creer une regex a partir du pattern
     const regexPattern = filePattern
-        .replace(/\./g, '\\.')    // Échapper les points
-        .replace(/\*/g, '.*')     // * devient .*
-        .replace(/\?/g, '.');     // ? devient .
+        .replace(/\./g, '\\.')
+        .replace(/\*/g, '.*')
+        .replace(/\?/g, '.');
     
     const regex = new RegExp('^' + regexPattern + '$');
     
-    // Trouver tous les fichiers dans le répertoire de base
+    // Trouver tous les fichiers dans le repertoire de base
     const matchingFiles = [];
     
     Object.keys(fileSystem).forEach(path => {
-        // Vérifier si le fichier est dans le bon répertoire
         const parentPath = path.substring(0, path.lastIndexOf('/')) || '/';
-        if (parentPath === basePath || (basePath === currentPath && parentPath === '/')) {
+        if (parentPath === basePath) {
             const fileName = path.substring(path.lastIndexOf('/') + 1);
             
-            // Tester si le nom du fichier matche le pattern
             if (regex.test(fileName)) {
-                // Retourner le chemin relatif ou absolu selon l'input
                 if (pattern.startsWith('/')) {
                     matchingFiles.push(path);
+                } else if (pattern.includes('/')) {
+                    const relativePath = path.startsWith(currentPath + '/') ? 
+                        path.substring(currentPath.length + 1) : path;
+                    matchingFiles.push(relativePath);
                 } else {
                     matchingFiles.push(fileName);
                 }
@@ -51,20 +62,23 @@ function expandGlob(pattern, currentPath, fileSystem) {
         }
     });
     
-    return matchingFiles.length > 0 ? matchingFiles : [pattern]; // Si aucun match, retourner le pattern original
+    return matchingFiles.length > 0 ? matchingFiles : [pattern];
 }
 
 /**
  * Commande rm - Supprime des fichiers et dossiers avec support des wildcards
  * @param {Array} args - Arguments de la commande
- * @param {Object} context - Contexte (fileSystem, currentPath, saveFileSystem)
+ * @param {Object} context - Contexte (fileSystem, getCurrentPath, saveFileSystem)
  */
 export function cmdRm(args, context) {
-    const { fileSystem, currentPath, saveFileSystem } = context;
+    const { fileSystem, getCurrentPath, saveFileSystem } = context;
     
     // Utiliser les fonctions du contexte si disponibles, sinon celles par défaut
     const errorFn = context?.showError || showError;
     const successFn = context?.showSuccess || showSuccess;
+    
+    // Obtenir le chemin courant via la méthode
+    const currentPath = getCurrentPath();
     
     if (args.length === 0) {
         errorFn('rm: opérande manquant');

@@ -27,7 +27,8 @@ function testContextProperties() {
     
     // Vérifier que les propriétés essentielles existent
     assert.isTrue(context.fileSystem !== undefined, 'fileSystem devrait exister');
-    assert.isTrue(context.currentPath !== undefined, 'currentPath devrait exister');
+    assert.isTrue(context.getCurrentPath !== undefined, 'getCurrentPath devrait exister');
+    assert.isTrue(typeof context.getCurrentPath === 'function', 'getCurrentPath devrait être une fonction');
     assert.isTrue(context.variables !== undefined, 'variables devrait exister');
     assert.isTrue(context.currentUser !== undefined, 'currentUser devrait exister');
     
@@ -45,6 +46,7 @@ function testContextFunctions() {
     // Vérifier que les fonctions essentielles existent
     assert.isTrue(typeof context.setCurrentPath === 'function', 'setCurrentPath devrait être une fonction');
     assert.isTrue(typeof context.saveFileSystem === 'function', 'saveFileSystem devrait être une fonction');
+    assert.isTrue(typeof context.getCurrentPath === 'function', 'getCurrentPath devrait être une fonction');
     
     // Vérifier les fonctions injectées pour les tests
     assert.isTrue(typeof context.addLine === 'function', 'addLine devrait être injectée');
@@ -62,8 +64,8 @@ function testInitialCurrentPath() {
     clearCaptures();
     const context = createTestContext();
     
-    // Vérifier le chemin courant initial
-    assert.equals(context.currentPath, '/root', 'Le chemin courant initial devrait être /root');
+    // Vérifier le chemin courant initial via la méthode
+    assert.equals(context.getCurrentPath(), '/root', 'Le chemin courant initial devrait être /root');
     
     console.log('✅ Chemin courant initial correct');
     return true;
@@ -85,6 +87,26 @@ function testContextVariables() {
 }
 
 /**
+ * Test du changement de chemin courant
+ */
+function testCurrentPathChange() {
+    clearCaptures();
+    const context = createTestContext();
+    
+    // Vérifier le chemin initial
+    assert.equals(context.getCurrentPath(), '/root', 'Chemin initial devrait être /root');
+    
+    // Changer le chemin
+    context.setCurrentPath('/home');
+    
+    // Vérifier le nouveau chemin
+    assert.equals(context.getCurrentPath(), '/home', 'Le chemin devrait être changé vers /home');
+    
+    console.log('✅ Changement de chemin courant fonctionne');
+    return true;
+}
+
+/**
  * Export des tests du contexte
  */
 export const contextTests = [
@@ -92,5 +114,6 @@ export const contextTests = [
     createTest('Propriétés du contexte', testContextProperties),
     createTest('Fonctions du contexte', testContextFunctions),
     createTest('Chemin courant initial', testInitialCurrentPath),
-    // createTest('Variables du contexte', testContextVariables)
+    createTest('Variables du contexte', testContextVariables),
+    createTest('Changement de chemin courant', testCurrentPathChange)
 ];

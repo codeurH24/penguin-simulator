@@ -21,8 +21,10 @@ export function validateFileSystem(context) {
         errors.push('Dossier /root manquant');
     }
     
-    if (context.currentPath !== '/root') {
-        errors.push(`currentPath devrait être /root, mais c'est ${context.currentPath}`);
+    // CORRECTION: Utiliser getCurrentPath() au lieu de currentPath
+    const currentPath = context.getCurrentPath();
+    if (currentPath !== '/root') {
+        errors.push(`currentPath devrait être /root, mais c'est ${currentPath}`);
     }
     
     // Vérifier les types

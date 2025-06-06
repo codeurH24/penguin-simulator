@@ -161,7 +161,6 @@ class Context {
         
         return {
             fileSystem: this.fileSystem,
-            currentPath: this.currentPath,
             getCurrentPath: () => this.getCurrentPath.bind(this)(),
             setCurrentPath: (newPath) => this.setCurrentPath.bind(this)(newPath),
             saveFileSystem: () => this.saveFileSystem(),

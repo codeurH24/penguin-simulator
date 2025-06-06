@@ -10,7 +10,9 @@ import { showError, showSuccess } from '../modules/terminal.js';
  * @param {Object} context - Contexte (fileSystem, currentPath, saveFileSystem)
  */
 export function cmdMv(args, context) {
-    const { fileSystem, currentPath, saveFileSystem } = context;
+    
+    const { fileSystem, getCurrentPath, saveFileSystem } = context;
+    const currentPath = getCurrentPath();
     
     // Utiliser les fonctions du contexte si disponibles, sinon celles par défaut
     const errorFn = context?.showError || showError;

@@ -11,7 +11,8 @@ import { showError, showSuccess } from '../modules/terminal.js';
  */
 export function cmdTouch(args, context) {
     
-    const { fileSystem, currentPath, saveFileSystem } = context;
+    const { fileSystem, getCurrentPath, saveFileSystem } = context;
+    const currentPath = getCurrentPath();
     
     // Utiliser les fonctions du contexte si disponibles, sinon celles par défaut
     const errorFn = context?.showError || showError;
