@@ -1,4 +1,4 @@
-// bin/useradd.js - Commande useradd (ajouter un utilisateur) - Version corrigée
+// bin/useradd.js - Commande useradd (ajouter un utilisateur) - Version silencieuse Debian
 // Équivalent de /usr/sbin/useradd sous Debian
 
 import { addUser, isRoot, initUserSystem, parsePasswdFile } from '../modules/users.js';
@@ -23,8 +23,9 @@ export function cmdUseradd(args, context) {
     }
     
     // VÉRIFICATION CRITIQUE: S'assurer que les fichiers système existent
+    // ✅ CORRECTION DEBIAN: Suppression du console.log() pour respecter le silence
     if (!fileSystem['/etc/passwd']) {
-        console.log('ATTENTION: /etc/passwd manquant, initialisation des fichiers système...');
+        // Initialisation silencieuse des fichiers système
         initUserSystem(fileSystem);
         saveFileSystem();
     }
@@ -47,7 +48,7 @@ export function cmdUseradd(args, context) {
     // Parser les options
     const options = {};
     let username = null;
-    let createHome = false; // ⚠️ CORRECTION: Par défaut FALSE (comportement Debian)
+    let createHome = false; // ✅ DEBIAN: Par défaut FALSE (comportement Debian)
     
     for (let i = 0; i < args.length; i++) {
         const arg = args[i];
@@ -123,11 +124,11 @@ export function cmdUseradd(args, context) {
     }
 
     try {
-        // ⚠️ CORRECTION: Passer le paramètre createHome à addUser
+        // ✅ DEBIAN: Passer le paramètre createHome à addUser
         addUser(username, options, fileSystem, saveFileSystem, createHome);
         
-        // COMPORTEMENT UNIX/DEBIAN : useradd est silencieux en cas de succès
-        // Pas de message de succès affiché
+        // ✅ COMPORTEMENT DEBIAN : useradd est SILENCIEUX en cas de succès
+        // Pas de message de succès affiché (suppression de tout successFn)
         
     } catch (error) {
         errorFn(error.message);

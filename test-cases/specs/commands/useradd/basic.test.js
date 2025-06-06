@@ -1,12 +1,12 @@
-// test-cases/specs/commands/useradd/basic.test.js - Tests de base pour useradd
+// test-cases/specs/commands/useradd/basic.test.js - Tests de base pour useradd (VERSION DEBIAN CORRIGÉE)
 import { createTestContext, clearCaptures, getCaptures } from '../../../lib/context.js';
 import { assert, validateFileSystem, testUtils } from '../../../lib/helpers.js';
 import { createTest } from '../../../lib/runner.js';
 import { cmdUseradd } from '../../../../bin/useradd.js';
-import { getCurrentUser, parsePasswdFile, parseGroupFile } from '../../../../modules/users.js';
+import { parsePasswdFile, parseGroupFile, getCurrentUser } from '../../../../modules/users.js';
 
 /**
- * Vérifie si une erreur correspond aux messages d'erreur attendus de useradd
+ * Vérifie si une erreur correspond aux messages d'erreur attendus
  * @param {Array} captures - Messages capturés
  * @param {string} expectedType - Type d'erreur attendu
  * @returns {boolean} - true si l'erreur correspond
@@ -18,58 +18,14 @@ function hasExpectedError(captures, expectedType) {
         const text = capture.text;
         
         switch (expectedType) {
-            case 'permission_denied':
-                return text.includes('Seul root peut ajouter des utilisateurs');
-                
-            case 'user_exists':
-                return text.includes('existe déjà') || text.includes('ERREUR useradd:');
-                
-            case 'invalid_name':
-                return text.includes('nom d\'utilisateur invalide') || 
-                       text.includes('nom d\'utilisateur invalide');
-                
             case 'missing_name':
                 return text.includes('nom d\'utilisateur manquant');
                 
-            case 'uid_in_use':
-                return text.includes('UID') && text.includes('déjà utilisé');
+            case 'user_exists':
+                return text.includes('existe déjà');
                 
-            case 'invalid_uid':
-                return text.includes('UID invalide');
-                
-            default:
-                return false;
-        }
-    });
-}
-
-/**
- * Vérifie si un message de succès correspond aux attentes
- * @param {Array} captures - Messages capturés
- * @param {string} expectedType - Type de succès attendu
- * @returns {boolean} - true si le succès correspond
- */
-function hasExpectedSuccess(captures, expectedType) {
-    return captures.some(capture => {
-        if (capture.className !== 'success') return false;
-        
-        const text = capture.text;
-        
-        switch (expectedType) {
-            case 'user_created':
-                return text.includes('ajouté avec succès');
-                
-            case 'uid_gid_info':
-                return text.includes('UID:') && text.includes('GID:');
-                
-            case 'home_info':
-                return text.includes('Répertoire home:');
-                
-            case 'shell_info':
-                return text.includes('Shell:');
-                
-            case 'next_steps':
-                return text.includes('Prochaines étapes') || text.includes('passwd');
+            case 'invalid_name':
+                return text.includes('nom d\'utilisateur invalide');
                 
             default:
                 return false;
@@ -78,49 +34,33 @@ function hasExpectedSuccess(captures, expectedType) {
 }
 
 /**
- * Vérifie qu'un utilisateur a été créé correctement dans les fichiers système
+ * Vérifie qu'un utilisateur a été correctement créé (VERSION DEBIAN)
  * @param {Object} context - Contexte de test
  * @param {string} username - Nom d'utilisateur
- * @param {Object} expectedProps - Propriétés attendues {uid, gid, home, shell}
+ * @param {Object} expectedProps - Propriétés attendues
+ * @param {boolean} shouldCreateHome - Si le home doit être créé (false par défaut Debian)
  */
-function assertUserCreated(context, username, expectedProps = {}) {
-    // Vérifier dans /etc/passwd
+function assertUserCreated(context, username, expectedProps, shouldCreateHome = false) {
     const users = parsePasswdFile(context.fileSystem);
     const user = users.find(u => u.username === username);
     
-    assert.isTrue(user !== undefined, `L'utilisateur ${username} devrait exister dans /etc/passwd`);
+    assert.isTrue(user !== undefined, `L'utilisateur ${username} devrait être créé`);
+    assert.equals(user.home, expectedProps.home || `/home/${username}`, 'Home path correct');
+    assert.equals(user.shell, expectedProps.shell || '/bin/bash', 'Shell correct');
     
-    if (expectedProps.uid !== undefined) {
-        assert.equals(user.uid, expectedProps.uid, `UID devrait être ${expectedProps.uid}`);
+    // DEBIAN CRITIQUE: Vérifier comportement du répertoire home
+    const homeExists = context.fileSystem[user.home] !== undefined;
+    if (shouldCreateHome) {
+        assert.isTrue(homeExists, `Le répertoire home ${user.home} devrait être créé avec -m`);
+        assert.isDirectory(context, user.home, `${user.home} devrait être un répertoire`);
+    } else {
+        assert.isFalse(homeExists, 
+            `❌ DEBIAN: Le répertoire home ${user.home} NE DOIT PAS être créé sans -m`);
     }
-    
-    if (expectedProps.gid !== undefined) {
-        assert.equals(user.gid, expectedProps.gid, `GID devrait être ${expectedProps.gid}`);
-    }
-    
-    if (expectedProps.home !== undefined) {
-        assert.equals(user.home, expectedProps.home, `Home devrait être ${expectedProps.home}`);
-    }
-    
-    if (expectedProps.shell !== undefined) {
-        assert.equals(user.shell, expectedProps.shell, `Shell devrait être ${expectedProps.shell}`);
-    }
-    
-    // Vérifier dans /etc/shadow
-    const shadowFile = context.fileSystem['/etc/shadow'];
-    assert.isTrue(shadowFile !== undefined, '/etc/shadow devrait exister');
-    const shadowLines = shadowFile.content.split('\n');
-    const userShadowLine = shadowLines.find(line => line.startsWith(username + ':'));
-    assert.isTrue(userShadowLine !== undefined, `${username} devrait exister dans /etc/shadow`);
-    
-    // Vérifier que le répertoire home a été créé
-    const homeDir = expectedProps.home || `/home/${username}`;
-    assert.fileExists(context, homeDir, `Le répertoire home ${homeDir} devrait être créé`);
-    assert.isDirectory(context, homeDir, `${homeDir} devrait être un dossier`);
 }
 
 /**
- * Test de création d'utilisateur simple
+ * Test de création d'utilisateur simple (conforme Debian)
  */
 function testSimpleUserCreation() {
     clearCaptures();
@@ -138,27 +78,25 @@ function testSimpleUserCreation() {
     // Créer un utilisateur simple
     cmdUseradd(['alice'], context);
     
-    // COMPORTEMENT UNIX/DEBIAN : useradd est SILENCIEUX en cas de succès
+    // COMPORTEMENT DEBIAN : useradd est SILENCIEUX en cas de succès
     const captures = getCaptures();
-    assert.captureCount(0, 'useradd ne devrait produire AUCUNE sortie en cas de succès (principe Unix)');
+    assert.captureCount(0, 'useradd ne devrait produire AUCUNE sortie en cas de succès (principe Unix/Debian)');
     
-    // Vérifier que l'utilisateur a été créé
+    // Vérifier que l'utilisateur a été créé SANS répertoire home (Debian)
     assertUserCreated(context, 'alice', {
         home: '/home/alice',
         shell: '/bin/bash'
-    });
+    }, false); // false = pas de home par défaut
     
-    console.log('✅ Création d\'utilisateur simple fonctionne (silencieuse)');
+    console.log('✅ Création d\'utilisateur simple fonctionne (silencieuse, pas de home)');
     return true;
 }
 
-
 /**
- * TEST CRITIQUE: Vérifier que useradd sans -m ne crée PAS le répertoire home
- * (Comportement Debian standard)
+ * TEST CRITIQUE DEBIAN: useradd sans -m ne crée PAS le répertoire home
  */
 function testUseraddWithoutMDoesNotCreateHome() {
-    console.log('🧪 TEST CRITIQUE: useradd sans -m ne doit pas créer le home');
+    console.log('🧪 TEST CRITIQUE DEBIAN: useradd sans -m ne doit pas créer le home');
     
     clearCaptures();
     const context = createTestContext();
@@ -166,7 +104,7 @@ function testUseraddWithoutMDoesNotCreateHome() {
     // Exécuter useradd SANS l'option -m
     cmdUseradd(['testuser'], context);
     
-    // COMPORTEMENT UNIX : Aucune sortie en cas de succès
+    // COMPORTEMENT DEBIAN : Aucune sortie en cas de succès
     const captures = getCaptures();
     assert.captureCount(0, 'useradd ne devrait produire aucune sortie en cas de succès');
     
@@ -186,12 +124,11 @@ function testUseraddWithoutMDoesNotCreateHome() {
     return true;
 }
 
-// À ajouter à la liste des tests dans useraddBasicTests:
-// createTest('useradd sans -m ne crée pas le home', testUseraddWithoutMDoesNotCreateHome),
-
-// Test de comparaison pour s'assurer que -m fonctionne
+/**
+ * Test comparatif: useradd avec -m crée le home
+ */
 function testUseraddWithMCreatesHome() {
-    console.log('🧪 TEST COMPARATIF: useradd avec -m crée le home');
+    console.log('🧪 TEST COMPARATIF DEBIAN: useradd avec -m crée le home');
     
     clearCaptures();
     const context = createTestContext();
@@ -199,7 +136,7 @@ function testUseraddWithMCreatesHome() {
     // Exécuter useradd AVEC l'option -m
     cmdUseradd(['-m', 'testwithm'], context);
     
-    // COMPORTEMENT UNIX : Aucune sortie en cas de succès
+    // COMPORTEMENT DEBIAN : Aucune sortie en cas de succès
     const captures = getCaptures();
     assert.captureCount(0, 'useradd ne devrait produire aucune sortie en cas de succès');
     
@@ -212,12 +149,18 @@ function testUseraddWithMCreatesHome() {
     assert.fileExists(context, '/home/testwithm', 'Avec -m, le répertoire home DOIT être créé');
     assert.isDirectory(context, '/home/testwithm', 'Le home doit être un répertoire');
     
-    console.log('✅ AVEC -m: répertoire home correctement créé');
+    // Vérifier les permissions du home (Debian)
+    const homeDir = context.fileSystem['/home/testwithm'];
+    assert.equals(homeDir.permissions, 'drwxr-xr-x', 'Permissions du home selon Debian');
+    assert.equals(homeDir.owner, 'testwithm', 'Propriétaire du home');
+    assert.equals(homeDir.group, 'testwithm', 'Groupe du home');
+    
+    console.log('✅ AVEC -m: répertoire home correctement créé (Debian)');
     return true;
 }
 
 /**
- * Test de création d'utilisateur avec UID automatique
+ * Test de création d'utilisateur avec UID automatique (conforme Debian)
  */
 function testAutomaticUID() {
     clearCaptures();
@@ -227,7 +170,7 @@ function testAutomaticUID() {
     cmdUseradd(['user1'], context);
     cmdUseradd(['user2'], context);
     
-    // COMPORTEMENT UNIX : Aucune sortie en cas de succès
+    // COMPORTEMENT DEBIAN : Aucune sortie en cas de succès
     const captures = getCaptures();
     assert.captureCount(0, 'useradd ne devrait produire aucune sortie pour des créations réussies');
     
@@ -238,17 +181,21 @@ function testAutomaticUID() {
     assert.isTrue(user1 !== undefined, 'user1 devrait être créé');
     assert.isTrue(user2 !== undefined, 'user2 devrait être créé');
     
-    // Les UID devraient être différents et >= 1000 (convention Linux)
-    assert.isTrue(user1.uid >= 1000, 'UID de user1 devrait être >= 1000');
-    assert.isTrue(user2.uid >= 1000, 'UID de user2 devrait être >= 1000');
+    // Les UID devraient être différents et >= 1000 (convention Debian)
+    assert.isTrue(user1.uid >= 1000, 'UID de user1 devrait être >= 1000 (Debian)');
+    assert.isTrue(user2.uid >= 1000, 'UID de user2 devrait être >= 1000 (Debian)');
     assert.isTrue(user1.uid !== user2.uid, 'Les UID devraient être différents');
     
-    console.log('✅ Attribution automatique d\'UID fonctionne (silencieuse)');
+    // Vérifier qu'aucun home n'est créé par défaut (Debian)
+    assert.fileNotExists(context, '/home/user1', 'user1 ne devrait pas avoir de home sans -m');
+    assert.fileNotExists(context, '/home/user2', 'user2 ne devrait pas avoir de home sans -m');
+    
+    console.log('✅ Attribution automatique d\'UID fonctionne (silencieuse, Debian)');
     return true;
 }
 
 /**
- * Test d'erreur sans arguments
+ * Test d'erreur sans arguments (conforme)
  */
 function testNoArguments() {
     clearCaptures();
@@ -269,7 +216,7 @@ function testNoArguments() {
 }
 
 /**
- * Test d'erreur utilisateur existant
+ * Test d'erreur utilisateur existant (conforme)
  */
 function testUserAlreadyExists() {
     clearCaptures();
@@ -295,7 +242,7 @@ function testUserAlreadyExists() {
 }
 
 /**
- * Test d'erreur nom d'utilisateur invalide
+ * Test d'erreur nom d'utilisateur invalide (conforme)
  */
 function testInvalidUsername() {
     clearCaptures();
@@ -334,7 +281,7 @@ function testInvalidUsername() {
 }
 
 /**
- * Test d'erreur utilisateur non-root
+ * Test conceptuel des permissions non-root (conforme)
  */
 function testNonRootPermissions() {
     clearCaptures();
@@ -342,13 +289,6 @@ function testNonRootPermissions() {
     
     // Note: Ce test est difficile à implémenter car les tests s'exécutent toujours en tant que root
     // Dans un vrai scénario, on changerait d'utilisateur avec su d'abord
-    // Pour l'instant, on va simuler en modifiant temporairement getCurrentUser
-    
-    // Sauvegarder la fonction originale
-    const originalGetCurrentUser = getCurrentUser;
-    
-    // Temporairement modifier getCurrentUser pour retourner un utilisateur non-root
-    // Note: ceci est un hack pour les tests, dans le vrai code ce serait géré par su
     
     console.log('⚠️ Test de permissions non-root nécessiterait une modification de getCurrentUser()');
     console.log('✅ Test de permissions conceptuellement validé');
@@ -356,38 +296,7 @@ function testNonRootPermissions() {
 }
 
 /**
- * Test de création du répertoire home
- */
-function testHomeDirectoryCreation() {
-    clearCaptures();
-    const context = createTestContext();
-    
-    // Vérifier que le répertoire home n'existe pas au départ
-    assert.fileNotExists(context, '/home/charlie', 'Le répertoire home ne devrait pas exister au départ');
-    
-    // Créer un utilisateur
-    cmdUseradd(['charlie'], context);
-    
-    // COMPORTEMENT UNIX : Aucune sortie en cas de succès
-    const captures = getCaptures();
-    assert.captureCount(0, 'useradd ne devrait produire aucune sortie en cas de succès');
-    
-    // Vérifier que le répertoire home a été créé
-    assert.fileExists(context, '/home/charlie', 'Le répertoire home devrait être créé');
-    assert.isDirectory(context, '/home/charlie', 'Le home devrait être un dossier');
-    
-    // Vérifier les permissions et propriétaire
-    const homeDir = context.fileSystem['/home/charlie'];
-    assert.equals(homeDir.owner, 'charlie', 'Le propriétaire devrait être charlie');
-    assert.equals(homeDir.group, 'charlie', 'Le groupe devrait être charlie');
-    assert.equals(homeDir.permissions, 'drwxr-xr-x', 'Permissions du répertoire home');
-    
-    console.log('✅ Création du répertoire home fonctionne (silencieuse)');
-    return true;
-}
-
-/**
- * Test de mise à jour des fichiers système
+ * Test de mise à jour des fichiers système (conforme Debian)
  */
 function testSystemFilesUpdate() {
     clearCaptures();
@@ -400,7 +309,7 @@ function testSystemFilesUpdate() {
     // Créer un utilisateur
     cmdUseradd(['dave'], context);
     
-    // COMPORTEMENT UNIX : Aucune sortie en cas de succès
+    // COMPORTEMENT DEBIAN : Aucune sortie en cas de succès
     const captures = getCaptures();
     assert.captureCount(0, 'useradd ne devrait produire aucune sortie en cas de succès');
     
@@ -425,68 +334,15 @@ function testSystemFilesUpdate() {
     assert.isTrue(daveGroup !== undefined, 'Un groupe principal devrait être créé pour dave');
     assert.equals(daveGroup.gid, newUser.gid, 'Le GID du groupe devrait correspondre au GID de l\'utilisateur');
     
-    console.log('✅ Mise à jour des fichiers système fonctionne (silencieuse)');
+    // DEBIAN: Vérifier qu'aucun home n'est créé par défaut
+    assert.fileNotExists(context, '/home/dave', 'Aucun home ne devrait être créé par défaut (Debian)');
+    
+    console.log('✅ Mise à jour des fichiers système fonctionne (silencieuse, Debian)');
     return true;
 }
 
 /**
- * Test de validation des métadonnées du répertoire home
- */
-function testHomeDirectoryMetadata() {
-    clearCaptures();
-    const context = createTestContext();
-    
-    // Créer un utilisateur
-    cmdUseradd(['eve'], context);
-    
-    // Vérifier les métadonnées du répertoire home
-    const homeDir = context.fileSystem['/home/eve'];
-    
-    assert.equals(homeDir.type, 'dir', 'Type devrait être "dir"');
-    assert.equals(homeDir.size, 4096, 'Taille devrait être 4096 (standard Unix)');
-    assert.isTrue(homeDir.created instanceof Date, 'Date de création devrait être une Date');
-    assert.isTrue(homeDir.modified instanceof Date, 'Date de modification devrait être une Date');
-    assert.isTrue(homeDir.accessed instanceof Date, 'Date d\'accès devrait être une Date');
-    assert.equals(homeDir.permissions, 'drwxr-xr-x', 'Permissions par défaut du home');
-    assert.equals(homeDir.owner, 'eve', 'Propriétaire devrait être eve');
-    assert.equals(homeDir.group, 'eve', 'Groupe devrait être eve');
-    assert.equals(homeDir.links, 2, 'Nombre de liens devrait être 2 (. et ..)');
-    
-    console.log('✅ Métadonnées du répertoire home correctes');
-    return true;
-}
-
-/**
- * Test de messages informatifs
- */
-function testInformativeMessages() {
-    clearCaptures();
-    const context = createTestContext();
-    
-    // Créer un utilisateur
-    cmdUseradd(['frank'], context);
-    
-    const captures = getCaptures();
-    
-    // Vérifier les différents types de messages de succès
-    assert.isTrue(hasExpectedSuccess(captures, 'user_created'), 'Message de création devrait être affiché');
-    assert.isTrue(hasExpectedSuccess(captures, 'uid_gid_info'), 'Info UID/GID devrait être affichée');
-    assert.isTrue(hasExpectedSuccess(captures, 'home_info'), 'Info répertoire home devrait être affichée');
-    assert.isTrue(hasExpectedSuccess(captures, 'shell_info'), 'Info shell devrait être affichée');
-    
-    // Vérifier que les prochaines étapes sont suggérées
-    const hasNextSteps = captures.some(capture => 
-        capture.className === 'success' && 
-        (capture.text.includes('passwd frank') || capture.text.includes('Prochaines étapes'))
-    );
-    assert.isTrue(hasNextSteps, 'Les prochaines étapes devraient être suggérées');
-    
-    console.log('✅ Messages informatifs complets');
-    return true;
-}
-
-/**
- * Test de noms d'utilisateurs valides variés
+ * Test de noms d'utilisateurs valides variés (conforme)
  */
 function testValidUsernames() {
     clearCaptures();
@@ -498,7 +354,7 @@ function testValidUsernames() {
         clearCaptures();
         cmdUseradd([name], context);
         
-        // COMPORTEMENT UNIX : Aucune sortie en cas de succès
+        // COMPORTEMENT DEBIAN : Aucune sortie en cas de succès
         const captures = getCaptures();
         assert.captureCount(0, `useradd ne devrait produire aucune sortie pour ${name}`);
         
@@ -506,14 +362,21 @@ function testValidUsernames() {
         const users = parsePasswdFile(context.fileSystem);
         const user = users.find(u => u.username === name);
         assert.isTrue(user !== undefined, `${name} devrait être créé`);
+        
+        // DEBIAN: Vérifier qu'aucun home n'est créé par défaut
+        assert.fileNotExists(context, `/home/${name}`, `${name} ne devrait pas avoir de home sans -m`);
     });
     
-    console.log('✅ Noms d\'utilisateurs valides acceptés (silencieux)');
+    console.log('✅ Noms d\'utilisateurs valides acceptés (silencieux, Debian)');
     return true;
 }
 
 /**
- * Export des tests de base pour useradd
+ * Export des tests de base pour useradd (VERSION DEBIAN CORRIGÉE)
+ * ❌ Tests supprimés (non-conformes Debian) :
+ * - testHomeDirectoryCreation (supposait création home par défaut)
+ * - testHomeDirectoryMetadata (supposait création home par défaut)  
+ * - testInformativeMessages (supposait messages de succès)
  */
 export const useraddBasicTests = [
     createTest('Création utilisateur simple', testSimpleUserCreation),
@@ -524,8 +387,6 @@ export const useraddBasicTests = [
     createTest('Utilisateur existant (erreur)', testUserAlreadyExists),
     createTest('Nom invalide (erreur)', testInvalidUsername),
     createTest('Permissions non-root (concept)', testNonRootPermissions),
-    createTest('Création répertoire home', testHomeDirectoryCreation),
     createTest('Mise à jour fichiers système', testSystemFilesUpdate),
-    createTest('Métadonnées répertoire home', testHomeDirectoryMetadata),
     createTest('Noms d\'utilisateurs valides', testValidUsernames)
 ];

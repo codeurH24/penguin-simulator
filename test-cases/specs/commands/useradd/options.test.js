@@ -1,4 +1,4 @@
-// test-cases/specs/commands/useradd/options.test.js - Tests des options pour useradd
+// test-cases/specs/commands/useradd/options.test.js - Tests des options pour useradd (VERSION DEBIAN COMPLÈTE)
 import { createTestContext, clearCaptures, getCaptures } from '../../../lib/context.js';
 import { assert, validateFileSystem, testUtils } from '../../../lib/helpers.js';
 import { createTest } from '../../../lib/runner.js';
@@ -47,7 +47,7 @@ function testOptionU() {
     // Créer un utilisateur avec UID spécifique
     cmdUseradd(['-u', '1500', 'alice'], context);
     
-    // COMPORTEMENT UNIX : Aucune sortie en cas de succès
+    // COMPORTEMENT DEBIAN : Aucune sortie en cas de succès
     const captures = getCaptures();
     assert.captureCount(0, 'useradd ne devrait produire aucune sortie avec -u valide');
     
@@ -58,7 +58,10 @@ function testOptionU() {
     assert.isTrue(user !== undefined, 'alice devrait être créée');
     assert.equals(user.uid, 1500, 'UID devrait être 1500');
     
-    console.log('✅ Option -u (UID spécifique) fonctionne (silencieuse)');
+    // DEBIAN : Vérifier qu'aucun home n'est créé par défaut
+    assert.fileNotExists(context, '/home/alice', 'alice ne devrait pas avoir de home sans -m');
+    
+    console.log('✅ Option -u (UID spécifique) fonctionne (silencieuse, Debian)');
     return true;
 }
 
@@ -72,7 +75,7 @@ function testOptionG() {
     // Créer un utilisateur avec GID spécifique
     cmdUseradd(['-g', '1600', 'bob'], context);
     
-    // COMPORTEMENT UNIX : Aucune sortie en cas de succès
+    // COMPORTEMENT DEBIAN : Aucune sortie en cas de succès
     const captures = getCaptures();
     assert.captureCount(0, 'useradd ne devrait produire aucune sortie avec -g valide');
     
@@ -83,36 +86,68 @@ function testOptionG() {
     assert.isTrue(user !== undefined, 'bob devrait être créé');
     assert.equals(user.gid, 1600, 'GID devrait être 1600');
     
-    console.log('✅ Option -g (GID spécifique) fonctionne (silencieuse)');
+    // DEBIAN : Vérifier qu'aucun home n'est créé par défaut
+    assert.fileNotExists(context, '/home/bob', 'bob ne devrait pas avoir de home sans -m');
+    
+    console.log('✅ Option -g (GID spécifique) fonctionne (silencieuse, Debian)');
     return true;
 }
 
 /**
- * Test de l'option -d (spécifier répertoire home)
+ * Test de l'option -d (spécifier répertoire home) - VERSION DEBIAN CORRIGÉE
  */
 function testOptionD() {
     clearCaptures();
     const context = createTestContext();
     
-    // Créer un utilisateur avec répertoire home personnalisé
+    // Créer un utilisateur avec répertoire home personnalisé SANS -m
     cmdUseradd(['-d', '/opt/charlie', 'charlie'], context);
     
-    // COMPORTEMENT UNIX : Aucune sortie en cas de succès
+    // COMPORTEMENT DEBIAN : Aucune sortie en cas de succès
     const captures = getCaptures();
     assert.captureCount(0, 'useradd ne devrait produire aucune sortie avec -d valide');
     
-    // Vérifier que l'utilisateur a le bon répertoire home
+    // Vérifier que l'utilisateur a le bon répertoire home dans /etc/passwd
     const users = parsePasswdFile(context.fileSystem);
     const user = users.find(u => u.username === 'charlie');
     
     assert.isTrue(user !== undefined, 'charlie devrait être créé');
     assert.equals(user.home, '/opt/charlie', 'Home devrait être /opt/charlie');
     
-    // Vérifier que le répertoire a été créé
-    assert.fileExists(context, '/opt/charlie', 'Le répertoire home personnalisé devrait être créé');
-    assert.isDirectory(context, '/opt/charlie', '/opt/charlie devrait être un dossier');
+    // DEBIAN CRITIQUE: -d seule ne crée PAS le répertoire physique
+    const homeExists = context.fileSystem['/opt/charlie'] !== undefined;
+    assert.isFalse(homeExists, 'DEBIAN: -d seule ne crée PAS le répertoire physique');
     
-    console.log('✅ Option -d (répertoire home personnalisé) fonctionne (silencieuse)');
+    console.log('✅ Option -d (chemin home) fonctionne sans créer le répertoire (Debian)');
+    return true;
+}
+
+/**
+ * Test spécialisé: -d avec -m crée le répertoire
+ */
+function testOptionDWithM() {
+    clearCaptures();
+    const context = createTestContext();
+    
+    // Créer un utilisateur avec répertoire home personnalisé AVEC -m
+    cmdUseradd(['-d', '/custom/homedir', '-m', 'customhome'], context);
+    
+    // COMPORTEMENT DEBIAN : Aucune sortie en cas de succès
+    const captures = getCaptures();
+    assert.captureCount(0, 'useradd -d -m ne devrait produire aucune sortie en cas de succès');
+    
+    // Vérifier que l'utilisateur a le bon répertoire home
+    const users = parsePasswdFile(context.fileSystem);
+    const user = users.find(u => u.username === 'customhome');
+    
+    assert.isTrue(user !== undefined, 'customhome devrait être créé');
+    assert.equals(user.home, '/custom/homedir', 'Home devrait être /custom/homedir');
+    
+    // AVEC -m: Le répertoire DOIT être créé
+    assert.fileExists(context, '/custom/homedir', 'Le répertoire home personnalisé devrait être créé avec -m');
+    assert.isDirectory(context, '/custom/homedir', '/custom/homedir devrait être un dossier');
+    
+    console.log('✅ Option -d avec -m crée le répertoire personnalisé (Debian)');
     return true;
 }
 
@@ -126,7 +161,7 @@ function testOptionS() {
     // Créer un utilisateur avec shell personnalisé
     cmdUseradd(['-s', '/bin/zsh', 'dave'], context);
     
-    // COMPORTEMENT UNIX : Aucune sortie en cas de succès
+    // COMPORTEMENT DEBIAN : Aucune sortie en cas de succès
     const captures = getCaptures();
     assert.captureCount(0, 'useradd ne devrait produire aucune sortie avec -s valide');
     
@@ -137,7 +172,10 @@ function testOptionS() {
     assert.isTrue(user !== undefined, 'dave devrait être créé');
     assert.equals(user.shell, '/bin/zsh', 'Shell devrait être /bin/zsh');
     
-    console.log('✅ Option -s (shell personnalisé) fonctionne (silencieuse)');
+    // DEBIAN : Vérifier qu'aucun home n'est créé par défaut
+    assert.fileNotExists(context, '/home/dave', 'dave ne devrait pas avoir de home sans -m');
+    
+    console.log('✅ Option -s (shell personnalisé) fonctionne (silencieuse, Debian)');
     return true;
 }
 
@@ -149,9 +187,9 @@ function testOptionC() {
     const context = createTestContext();
     
     // Créer un utilisateur avec commentaire
-    cmdUseradd(['-c', 'Eve Smith', 'eve'], context);
+    cmdUseradd(['-c', 'Eve User', 'eve'], context);
     
-    // COMPORTEMENT UNIX : Aucune sortie en cas de succès
+    // COMPORTEMENT DEBIAN : Aucune sortie en cas de succès
     const captures = getCaptures();
     assert.captureCount(0, 'useradd ne devrait produire aucune sortie avec -c valide');
     
@@ -160,41 +198,44 @@ function testOptionC() {
     const user = users.find(u => u.username === 'eve');
     
     assert.isTrue(user !== undefined, 'eve devrait être créée');
-    assert.equals(user.gecos, 'Eve Smith', 'GECOS devrait être "Eve Smith"');
+    assert.equals(user.gecos, 'Eve User', 'GECOS devrait être "Eve User"');
     
-    console.log('✅ Option -c (commentaire GECOS) fonctionne (silencieuse)');
+    // DEBIAN : Vérifier qu'aucun home n'est créé par défaut
+    assert.fileNotExists(context, '/home/eve', 'eve ne devrait pas avoir de home sans -m');
+    
+    console.log('✅ Option -c (commentaire GECOS) fonctionne (silencieuse, Debian)');
     return true;
 }
 
 /**
- * Test de options combinées
+ * Test d'options combinées - VERSION DEBIAN CORRIGÉE
  */
 function testCombinedOptions() {
     clearCaptures();
     const context = createTestContext();
     
-    // Créer un utilisateur avec plusieurs options
-    cmdUseradd(['-u', '2000', '-g', '2000', '-d', '/srv/frank', '-s', '/bin/fish', '-c', 'Frank Admin', 'frank'], context);
+    // Créer un utilisateur avec options combinées INCLUANT -m pour créer le home
+    cmdUseradd(['-u', '2500', '-g', '2600', '-d', '/srv/frank', '-s', '/bin/zsh', '-c', 'Frank Admin', '-m', 'frank'], context);
     
-    // COMPORTEMENT UNIX : Aucune sortie en cas de succès
+    // COMPORTEMENT DEBIAN : Aucune sortie en cas de succès
     const captures = getCaptures();
-    assert.captureCount(0, 'useradd ne devrait produire aucune sortie avec options combinées');
+    assert.captureCount(0, 'useradd avec options combinées ne devrait produire aucune sortie en cas de succès');
     
-    // Vérifier toutes les propriétés
+    // Vérifier que toutes les options ont été prises en compte
     const users = parsePasswdFile(context.fileSystem);
     const user = users.find(u => u.username === 'frank');
     
     assert.isTrue(user !== undefined, 'frank devrait être créé');
-    assert.equals(user.uid, 2000, 'UID devrait être 2000');
-    assert.equals(user.gid, 2000, 'GID devrait être 2000');
+    assert.equals(user.uid, 2500, 'UID devrait être 2500');
+    assert.equals(user.gid, 2600, 'GID devrait être 2600');
     assert.equals(user.home, '/srv/frank', 'Home devrait être /srv/frank');
-    assert.equals(user.shell, '/bin/fish', 'Shell devrait être /bin/fish');
+    assert.equals(user.shell, '/bin/zsh', 'Shell devrait être /bin/zsh');
     assert.equals(user.gecos, 'Frank Admin', 'GECOS devrait être "Frank Admin"');
     
-    // Vérifier que le répertoire home a été créé
-    assert.fileExists(context, '/srv/frank', 'Le répertoire home devrait être créé');
+    // Vérifier que le répertoire home a été créé (grâce à -m)
+    assert.fileExists(context, '/srv/frank', 'Le répertoire home devrait être créé avec -m');
     
-    console.log('✅ Options combinées fonctionnent (silencieuses)');
+    console.log('✅ Options combinées fonctionnent (silencieuses, Debian)');
     return true;
 }
 
@@ -309,7 +350,7 @@ function testUnknownOption() {
 }
 
 /**
- * Test de l'option -m (créer home - comportement par défaut)
+ * Test de l'option -m (créer home explicite)
  */
 function testOptionM() {
     clearCaptures();
@@ -318,10 +359,9 @@ function testOptionM() {
     // Créer un utilisateur avec -m explicite
     cmdUseradd(['-m', 'grace'], context);
     
-    // Vérifier qu'aucune erreur n'a été émise
+    // COMPORTEMENT DEBIAN : Aucune sortie en cas de succès
     const captures = getCaptures();
-    const hasError = captures.some(capture => capture.className === 'error');
-    assert.isFalse(hasError, 'Aucune erreur ne devrait être émise avec -m');
+    assert.captureCount(0, 'useradd -m ne devrait produire aucune sortie en cas de succès');
     
     // Vérifier que l'utilisateur et son home ont été créés
     const users = parsePasswdFile(context.fileSystem);
@@ -330,7 +370,7 @@ function testOptionM() {
     assert.isTrue(user !== undefined, 'grace devrait être créée');
     assert.fileExists(context, '/home/grace', 'Le répertoire home devrait être créé avec -m');
     
-    console.log('✅ Option -m (créer home explicite) fonctionne');
+    console.log('✅ Option -m (créer home explicite) fonctionne (silencieuse, Debian)');
     return true;
 }
 
@@ -344,19 +384,26 @@ function testDefaultValues() {
     // Créer un utilisateur sans options
     cmdUseradd(['henry'], context);
     
+    // COMPORTEMENT DEBIAN : Aucune sortie en cas de succès
+    const captures = getCaptures();
+    assert.captureCount(0, 'useradd sans options ne devrait produire aucune sortie en cas de succès');
+    
     // Vérifier les valeurs par défaut
     const users = parsePasswdFile(context.fileSystem);
     const user = users.find(u => u.username === 'henry');
     
     assert.isTrue(user !== undefined, 'henry devrait être créé');
-    assert.isTrue(user.uid >= 1000, 'UID par défaut devrait être >= 1000');
-    assert.equals(user.gid, user.uid, 'GID par défaut devrait égaler UID');
+    assert.isTrue(user.uid >= 1000, 'UID par défaut devrait être >= 1000 (Debian)');
+    assert.equals(user.gid, user.uid, 'GID par défaut devrait égaler UID (Debian)');
     assert.equals(user.home, '/home/henry', 'Home par défaut devrait être /home/username');
     assert.equals(user.shell, '/bin/bash', 'Shell par défaut devrait être /bin/bash');
     assert.equals(user.gecos, '', 'GECOS par défaut devrait être vide');
     assert.equals(user.password, 'x', 'Password field devrait être "x"');
     
-    console.log('✅ Valeurs par défaut correctes');
+    // DEBIAN : Vérifier qu'aucun home n'est créé par défaut
+    assert.fileNotExists(context, '/home/henry', 'henry ne devrait pas avoir de home sans -m');
+    
+    console.log('✅ Valeurs par défaut correctes (Debian)');
     return true;
 }
 
@@ -370,6 +417,10 @@ function testAutomaticGroupCreation() {
     // Créer un utilisateur sans spécifier de GID
     cmdUseradd(['ivan'], context);
     
+    // COMPORTEMENT DEBIAN : Aucune sortie en cas de succès
+    const captures = getCaptures();
+    assert.captureCount(0, 'useradd ne devrait produire aucune sortie en cas de succès');
+    
     // Vérifier que l'utilisateur a été créé
     const users = parsePasswdFile(context.fileSystem);
     const user = users.find(u => u.username === 'ivan');
@@ -379,11 +430,14 @@ function testAutomaticGroupCreation() {
     const groups = parseGroupFile(context.fileSystem);
     const userGroup = groups.find(g => g.name === 'ivan');
     
-    assert.isTrue(userGroup !== undefined, 'Un groupe principal "ivan" devrait être créé');
+    assert.isTrue(userGroup !== undefined, 'Un groupe principal "ivan" devrait être créé (Debian)');
     assert.equals(userGroup.gid, user.gid, 'Le GID du groupe devrait correspondre au GID de l\'utilisateur');
     assert.equals(userGroup.members.length, 0, 'Le groupe principal ne devrait pas avoir de membres explicites');
     
-    console.log('✅ Création automatique de groupe principal fonctionne');
+    // DEBIAN : Vérifier qu'aucun home n'est créé par défaut
+    assert.fileNotExists(context, '/home/ivan', 'ivan ne devrait pas avoir de home sans -m');
+    
+    console.log('✅ Création automatique de groupe principal fonctionne (Debian)');
     return true;
 }
 
@@ -397,6 +451,10 @@ function testComplexGECOS() {
     // Créer un utilisateur avec commentaire complexe
     cmdUseradd(['-c', 'Jane Doe,Room 123,555-1234,555-5678', 'jane'], context);
     
+    // COMPORTEMENT DEBIAN : Aucune sortie en cas de succès
+    const captures = getCaptures();
+    assert.captureCount(0, 'useradd avec GECOS complexe ne devrait produire aucune sortie en cas de succès');
+    
     // Vérifier que l'utilisateur a été créé avec le bon commentaire
     const users = parsePasswdFile(context.fileSystem);
     const user = users.find(u => u.username === 'jane');
@@ -404,7 +462,10 @@ function testComplexGECOS() {
     assert.isTrue(user !== undefined, 'jane devrait être créée');
     assert.equals(user.gecos, 'Jane Doe,Room 123,555-1234,555-5678', 'GECOS complexe devrait être préservé');
     
-    console.log('✅ GECOS complexe avec espaces et caractères spéciaux fonctionne');
+    // DEBIAN : Vérifier qu'aucun home n'est créé par défaut
+    assert.fileNotExists(context, '/home/jane', 'jane ne devrait pas avoir de home sans -m');
+    
+    console.log('✅ GECOS complexe avec espaces et caractères spéciaux fonctionne (Debian)');
     return true;
 }
 
@@ -418,6 +479,10 @@ function testOptionsOrder() {
     // Créer un utilisateur avec options dans différents ordres
     cmdUseradd(['kate', '-u', '4000', '-d', '/var/kate', '-c', 'Kate User'], context);
     
+    // COMPORTEMENT DEBIAN : Aucune sortie en cas de succès
+    const captures = getCaptures();
+    assert.captureCount(0, 'useradd avec ordre flexible ne devrait produire aucune sortie en cas de succès');
+    
     // Vérifier que toutes les options ont été prises en compte
     const users = parsePasswdFile(context.fileSystem);
     const user = users.find(u => u.username === 'kate');
@@ -427,17 +492,21 @@ function testOptionsOrder() {
     assert.equals(user.home, '/var/kate', 'Home devrait être correct');
     assert.equals(user.gecos, 'Kate User', 'GECOS devrait être correct');
     
-    console.log('✅ Ordre des options flexible fonctionne');
+    // DEBIAN : Vérifier qu'aucun home n'est créé par défaut (pas de -m)
+    assert.fileNotExists(context, '/var/kate', 'kate ne devrait pas avoir de home sans -m');
+    
+    console.log('✅ Ordre des options flexible fonctionne (Debian)');
     return true;
 }
 
 /**
- * Export des tests des options pour useradd
+ * Export des tests des options pour useradd - VERSION DEBIAN COMPLÈTE
  */
 export const useraddOptionsTests = [
     createTest('Option -u (UID spécifique)', testOptionU),
     createTest('Option -g (GID spécifique)', testOptionG),
-    createTest('Option -d (répertoire home)', testOptionD),
+    createTest('Option -d (chemin home)', testOptionD),
+    createTest('Option -d avec -m (crée répertoire)', testOptionDWithM),
     createTest('Option -s (shell)', testOptionS),
     createTest('Option -c (commentaire GECOS)', testOptionC),
     createTest('Options combinées', testCombinedOptions),
