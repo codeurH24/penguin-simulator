@@ -152,6 +152,70 @@ function testSimpleUserCreation() {
     return true;
 }
 
+
+/**
+ * TEST CRITIQUE: Vérifier que useradd sans -m ne crée PAS le répertoire home
+ * (Comportement Debian standard)
+ */
+function testUseraddWithoutMDoesNotCreateHome() {
+    console.log('🧪 TEST CRITIQUE: useradd sans -m ne doit pas créer le home');
+    
+    clearCaptures();
+    const context = createTestContext();
+    
+    // Exécuter useradd SANS l'option -m
+    cmdUseradd(['testuser'], context);
+    
+    // COMPORTEMENT UNIX : Aucune sortie en cas de succès
+    const captures = getCaptures();
+    assert.captureCount(0, 'useradd ne devrait produire aucune sortie en cas de succès');
+    
+    // Vérifier que l'utilisateur a été créé dans /etc/passwd
+    const users = parsePasswdFile(context.fileSystem);
+    const user = users.find(u => u.username === 'testuser');
+    
+    assert.isTrue(user !== undefined, 'testuser devrait être créé dans /etc/passwd');
+    assert.equals(user.home, '/home/testuser', 'Le chemin home devrait être défini dans passwd');
+    
+    // 🔥 TEST CRITIQUE: Le répertoire home NE DOIT PAS être créé
+    const homeExists = context.fileSystem['/home/testuser'] !== undefined;
+    assert.isFalse(homeExists, 
+        '❌ ERREUR: /home/testuser ne devrait PAS être créé sans option -m (comportement Debian standard)');
+    
+    console.log('✅ COMPORTEMENT DEBIAN CORRECT: pas de répertoire home créé sans -m');
+    return true;
+}
+
+// À ajouter à la liste des tests dans useraddBasicTests:
+// createTest('useradd sans -m ne crée pas le home', testUseraddWithoutMDoesNotCreateHome),
+
+// Test de comparaison pour s'assurer que -m fonctionne
+function testUseraddWithMCreatesHome() {
+    console.log('🧪 TEST COMPARATIF: useradd avec -m crée le home');
+    
+    clearCaptures();
+    const context = createTestContext();
+    
+    // Exécuter useradd AVEC l'option -m
+    cmdUseradd(['-m', 'testwithm'], context);
+    
+    // COMPORTEMENT UNIX : Aucune sortie en cas de succès
+    const captures = getCaptures();
+    assert.captureCount(0, 'useradd ne devrait produire aucune sortie en cas de succès');
+    
+    // Vérifier que l'utilisateur a été créé
+    const users = parsePasswdFile(context.fileSystem);
+    const user = users.find(u => u.username === 'testwithm');
+    assert.isTrue(user !== undefined, 'testwithm devrait être créé');
+    
+    // AVEC -m: Le répertoire home DOIT être créé
+    assert.fileExists(context, '/home/testwithm', 'Avec -m, le répertoire home DOIT être créé');
+    assert.isDirectory(context, '/home/testwithm', 'Le home doit être un répertoire');
+    
+    console.log('✅ AVEC -m: répertoire home correctement créé');
+    return true;
+}
+
 /**
  * Test de création d'utilisateur avec UID automatique
  */
@@ -453,6 +517,8 @@ function testValidUsernames() {
  */
 export const useraddBasicTests = [
     createTest('Création utilisateur simple', testSimpleUserCreation),
+    createTest('useradd sans -m ne crée pas le home', testUseraddWithoutMDoesNotCreateHome),
+    createTest('useradd avec -m crée le home', testUseraddWithMCreatesHome),
     createTest('UID automatique', testAutomaticUID),
     createTest('Sans arguments (erreur)', testNoArguments),
     createTest('Utilisateur existant (erreur)', testUserAlreadyExists),

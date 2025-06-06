@@ -39,14 +39,15 @@ export function cmdUseradd(args, context) {
         errorFn('  -d HOME    Spécifier le répertoire home');
         errorFn('  -s SHELL   Spécifier le shell de connexion');
         errorFn('  -c GECOS   Spécifier le commentaire (nom complet)');
-        errorFn('  -m         Créer le répertoire home (défaut)');
+        errorFn('  -m         Créer le répertoire home');
+        errorFn('  -M         Ne pas créer le répertoire home');
         return;
     }
 
     // Parser les options
     const options = {};
     let username = null;
-    let createHome = true;
+    let createHome = false; // ⚠️ CORRECTION: Par défaut FALSE (comportement Debian)
     
     for (let i = 0; i < args.length; i++) {
         const arg = args[i];
@@ -74,9 +75,9 @@ export function cmdUseradd(args, context) {
         } else if (arg === '-c' && i + 1 < args.length) {
             options.gecos = args[++i];
         } else if (arg === '-m') {
-            createHome = true;
+            createHome = true; // ✅ Créer le home seulement avec -m
         } else if (arg === '-M') {
-            createHome = false;
+            createHome = false; // ✅ Forcer pas de création du home
         } else if (arg.startsWith('-')) {
             errorFn(`useradd: option inconnue '${arg}'`);
             return;
@@ -85,17 +86,18 @@ export function cmdUseradd(args, context) {
                 username = arg;
             } else {
                 errorFn('useradd: trop d\'arguments');
+                errorFn('Usage: useradd [options] <nom_utilisateur>');
                 return;
             }
         }
     }
-    
-    if (!username) {
+
+    if (username === null) {
         errorFn('useradd: nom d\'utilisateur manquant');
         return;
     }
-    
-    // Valider le nom d'utilisateur selon les règles Unix
+
+    // Validation du nom d'utilisateur
     if (!isValidUsername(username)) {
         errorFn(`useradd: nom d'utilisateur invalide '${username}'`);
         errorFn('Le nom d\'utilisateur doit :');
@@ -104,14 +106,14 @@ export function cmdUseradd(args, context) {
         errorFn('- Faire au maximum 32 caractères');
         return;
     }
-    
+
     // Vérifier si l'utilisateur existe déjà
     const users = parsePasswdFile(fileSystem);
     if (users.find(u => u.username === username)) {
         errorFn(`useradd: l'utilisateur '${username}' existe déjà`);
         return;
     }
-    
+
     // Vérifier si l'UID est déjà utilisé (si spécifié)
     if (options.uid !== undefined) {
         if (users.find(u => u.uid === options.uid)) {
@@ -119,23 +121,16 @@ export function cmdUseradd(args, context) {
             return;
         }
     }
-    
+
     try {
-        // Debug: vérifier l'état des fichiers avant
-        console.log('État avant useradd:', {
-            passwd: !!fileSystem['/etc/passwd'],
-            shadow: !!fileSystem['/etc/shadow'],
-            group: !!fileSystem['/etc/group']
-        });
+        // ⚠️ CORRECTION: Passer le paramètre createHome à addUser
+        addUser(username, options, fileSystem, saveFileSystem, createHome);
         
-        const newUser = addUser(username, options, fileSystem, saveFileSystem);
-        
-        // COMPORTEMENT UNIX: useradd est SILENCIEUX en cas de succès
-        // Les tests s'attendent à aucune sortie pour un succès
+        // COMPORTEMENT UNIX/DEBIAN : useradd est silencieux en cas de succès
+        // Pas de message de succès affiché
         
     } catch (error) {
-        errorFn('useradd: ' + error.message);
-        console.error('Erreur détaillée useradd:', error);
+        errorFn(error.message);
     }
 }
 
@@ -148,7 +143,6 @@ function isValidUsername(username) {
     // Règles Unix pour les noms d'utilisateur :
     // - Doit commencer par une lettre minuscule ou underscore
     // - Peut contenir des lettres minuscules, chiffres, underscores et tirets
-    // - Peut se terminer par un $ (pour les comptes de machine)
     // - Maximum 32 caractères
     
     if (!username || username.length === 0 || username.length > 32) {
@@ -156,6 +150,6 @@ function isValidUsername(username) {
     }
     
     // Regex selon les standards POSIX
-    const validPattern = /^[a-z_][a-z0-9_-]*[$]?$/;
+    const validPattern = /^[a-z_][a-z0-9_-]*$/;
     return validPattern.test(username);
 }

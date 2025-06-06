@@ -1,4 +1,4 @@
-// users.js - Module de gestion des utilisateurs
+// modules/users.js - Module de gestion des utilisateurs
 // Module pour l'authentification et la gestion des utilisateurs Linux
 
 import { resolvePath } from './filesystem.js';
@@ -179,8 +179,9 @@ export function parseGroupFile(fileSystem) {
  * @param {Object} options - Options (uid, gid, home, shell, gecos)
  * @param {Object} fileSystem - Système de fichiers
  * @param {Function} saveFileSystem - Fonction de sauvegarde
+ * @param {boolean} createHome - Créer le répertoire home (défaut: false)
  */
-export function addUser(username, options, fileSystem, saveFileSystem) {
+export function addUser(username, options, fileSystem, saveFileSystem, createHome = false) {
     const users = parsePasswdFile(fileSystem);
     
     // Vérifier si l'utilisateur existe déjà
@@ -237,8 +238,8 @@ export function addUser(username, options, fileSystem, saveFileSystem) {
         fileSystem['/etc/group'].modified = new Date();
     }
 
-    // Créer le répertoire home
-    if (!fileSystem[newUser.home]) {
+    // ⚠️ CORRECTION: Ne créer le répertoire home QUE si createHome est true
+    if (createHome && !fileSystem[newUser.home]) {
         const now = new Date();
         fileSystem[newUser.home] = {
             type: 'dir',
@@ -359,49 +360,22 @@ export function canUseSudo(fileSystem) {
     if (isRoot()) return true;
 
     const sudoersFile = fileSystem['/etc/sudoers'];
-    if (!sudoersFile || sudoersFile.type !== 'file' || !sudoersFile.content) {
-        return false;
+    if (!sudoersFile || !sudoersFile.content) return false;
+
+    const lines = sudoersFile.content.split('\n');
+    
+    // Vérifier si l'utilisateur a des droits sudo directs
+    const userLine = lines.find(line => line.startsWith(currentUser.username + ' '));
+    if (userLine) return true;
+
+    // Vérifier si l'utilisateur est dans un groupe sudo
+    const groups = parseGroupFile(fileSystem);
+    for (const groupName of currentUser.groups) {
+        const groupLine = lines.find(line => line.startsWith('%' + groupName + ' '));
+        if (groupLine) return true;
     }
 
-    const content = sudoersFile.content;
-    
-    // Vérifier si l'utilisateur est explicitement mentionné
-    if (content.includes(`${currentUser.username}    ALL=(ALL:ALL) ALL`)) {
-        return true;
-    }
-
-    // Vérifier si l'utilisateur est dans le groupe sudo
-    return currentUser.groups.includes('sudo');
-}
-
-/**
- * Change le mot de passe d'un utilisateur
- * @param {string} username - Nom d'utilisateur
- * @param {string} newPassword - Nouveau mot de passe
- * @param {Object} fileSystem - Système de fichiers
- * @param {Function} saveFileSystem - Fonction de sauvegarde
- */
-export function changePassword(username, newPassword, fileSystem, saveFileSystem) {
-    // Simulation simple du changement de mot de passe
-    // Dans un vrai système, on utiliserait des fonctions de hachage
-    const hashedPassword = '$6$rounds=656000$salt$' + btoa(newPassword + 'salt');
-    
-    const shadowLines = (fileSystem['/etc/shadow'].content || '').split('\n');
-    const newShadowLines = shadowLines.map(line => {
-        if (line.startsWith(username + ':')) {
-            const parts = line.split(':');
-            parts[1] = hashedPassword; // Remplacer le hash du mot de passe
-            parts[2] = Math.floor(Date.now() / 86400000).toString(); // Date de dernière modification
-            return parts.join(':');
-        }
-        return line;
-    });
-
-    fileSystem['/etc/shadow'].content = newShadowLines.join('\n');
-    fileSystem['/etc/shadow'].size = fileSystem['/etc/shadow'].content.length;
-    fileSystem['/etc/shadow'].modified = new Date();
-    
-    saveFileSystem();
+    return false;
 }
 
 /**
@@ -451,4 +425,42 @@ export function checkFilePermissions(filepath, mode, fileSystem) {
         case 'x': return permBits[2] === 'x';
         default: return false;
     }
+}
+
+/**
+ * Change le mot de passe d'un utilisateur
+ * @param {string} username - Nom d'utilisateur
+ * @param {string} newPassword - Nouveau mot de passe (hash)
+ * @param {Object} fileSystem - Système de fichiers
+ * @param {Function} saveFileSystem - Fonction de sauvegarde
+ */
+export function changePassword(username, newPassword, fileSystem, saveFileSystem) {
+    const shadowFile = fileSystem['/etc/shadow'];
+    if (!shadowFile || !shadowFile.content) {
+        throw new Error('passwd: fichier /etc/shadow non trouvé');
+    }
+
+    const lines = shadowFile.content.split('\n');
+    let userFound = false;
+
+    const newLines = lines.map(line => {
+        if (line.startsWith(username + ':')) {
+            userFound = true;
+            const parts = line.split(':');
+            parts[1] = newPassword; // Remplacer le hash du mot de passe
+            parts[2] = Math.floor(Date.now() / 86400000).toString(); // Dernière modification
+            return parts.join(':');
+        }
+        return line;
+    });
+
+    if (!userFound) {
+        throw new Error(`passwd: l'utilisateur '${username}' n'existe pas`);
+    }
+
+    fileSystem['/etc/shadow'].content = newLines.join('\n');
+    fileSystem['/etc/shadow'].size = fileSystem['/etc/shadow'].content.length;
+    fileSystem['/etc/shadow'].modified = new Date();
+    
+    saveFileSystem();
 }
