@@ -2,7 +2,7 @@
 // Chaque contexte est un objet indépendant avec ses propres données
 
 import { getCurrentUser, initUserSystem } from '../modules/users/user.service.js';
-import { updatePrompt, addLine } from '../modules/terminal.js';
+import { updatePrompt, addLine } from '../modules/terminal/terminal.js';
 import { saveData, loadData, isDBReady } from '../modules/storage.js';
 
 // Instance globale pour l'application principale
