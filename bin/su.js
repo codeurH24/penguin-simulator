@@ -1,7 +1,7 @@
 // bin/su.js - Commande su (switch user) - Version silencieuse
 // Équivalent de /bin/su sous Debian
 
-import { switchUser, getCurrentUser, getUserInfo } from '../modules/users.js';
+import { switchUser, getCurrentUser, getUserInfo } from '../modules/users/user.service.js';
 import { showError } from '../modules/terminal.js';
 
 /**

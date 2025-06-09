@@ -1,7 +1,7 @@
 // terminal.js - Module d'interface et d'affichage du terminal avec autocomplétion
 // Gère l'interaction avec le DOM et l'affichage + vérification immédiate ancien mot de passe
 
-import { getCurrentUser } from './users.js';
+import { getCurrentUser } from './users/user.service.js';
 
 let terminal = null;
 let commandInput = null;

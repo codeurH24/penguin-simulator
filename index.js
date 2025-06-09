@@ -1,5 +1,5 @@
 import { initDB } from './modules/storage.js';
-import { getCurrentUser } from './modules/users.js';
+import { getCurrentUser } from './modules/users/user.service.js';
 import { 
     initTerminalElements, 
     addLine, 

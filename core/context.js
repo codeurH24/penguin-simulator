@@ -1,7 +1,7 @@
 // context.js - Module de gestion du contexte d'exécution bash (objet de programmation)
 // Chaque contexte est un objet indépendant avec ses propres données
 
-import { getCurrentUser, initUserSystem } from '../modules/users.js';
+import { getCurrentUser, initUserSystem } from '../modules/users/user.service.js';
 import { updatePrompt, addLine } from '../modules/terminal.js';
 import { saveData, loadData, isDBReady } from '../modules/storage.js';
 

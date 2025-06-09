@@ -9,7 +9,7 @@ import {
     getCurrentUser, 
     getUserInfo, 
     isRoot 
-} from '../modules/users.js';
+} from '../modules/users/user.service.js';
 import { showError, showSuccess, addLine, startPasswordInput } from '../modules/terminal.js';
 
 /**

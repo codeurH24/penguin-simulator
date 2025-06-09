@@ -1,7 +1,7 @@
 // bin/user-info.js - Commandes d'information utilisateur
 // Équivalents de whoami, id, groups sous Debian
 
-import { getCurrentUser, parseGroupFile } from '../modules/users.js';
+import { getCurrentUser, parseGroupFile } from '../modules/users/user.service.js';
 import { addLine, showError } from '../modules/terminal.js';
 
 /**

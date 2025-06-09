@@ -1,7 +1,7 @@
 // bin/userdel.js - Commande userdel (supprimer un utilisateur)
 // Équivalent de /usr/sbin/userdel sous Debian
 
-import { removeUser, isRoot, getCurrentUser } from '../modules/users.js';
+import { removeUser, isRoot, getCurrentUser } from '../modules/users/user.service.js';
 import { showError, showSuccess } from '../modules/terminal.js';
 
 /**

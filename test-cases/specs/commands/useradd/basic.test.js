@@ -3,7 +3,7 @@ import { createTestContext, clearCaptures, getCaptures } from '../../../lib/cont
 import { assert, validateFileSystem, testUtils } from '../../../lib/helpers.js';
 import { createTest } from '../../../lib/runner.js';
 import { cmdUseradd } from '../../../../bin/useradd.js';
-import { parsePasswdFile, parseGroupFile, getCurrentUser } from '../../../../modules/users.js';
+import { parsePasswdFile, parseGroupFile, getCurrentUser } from '../../../../modules/users/user.service.js';
 
 /**
  * Vérifie si une erreur correspond aux messages d'erreur attendus

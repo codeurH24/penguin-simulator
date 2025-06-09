@@ -1,7 +1,7 @@
 // bin/useradd.js - Commande useradd (ajouter un utilisateur) - Version silencieuse Debian
 // Équivalent de /usr/sbin/useradd sous Debian
 
-import { addUser, isRoot, initUserSystem, parsePasswdFile } from '../modules/users.js';
+import { addUser, isRoot, initUserSystem, parsePasswdFile } from '../modules/users/user.service.js';
 import { showError, showSuccess } from '../modules/terminal.js';
 
 /**
