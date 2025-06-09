@@ -2,7 +2,7 @@
 // Équivalent de /usr/sbin/useradd sous Debian
 
 import { addUser, isRoot, initUserSystem, parsePasswdFile } from '../modules/users/user.service.js';
-import { showError, showSuccess } from '../modules/terminal.js';
+import { showError, showSuccess } from '../modules/terminal/terminal.js';
 
 /**
  * Commande useradd - Ajoute un nouvel utilisateur au système

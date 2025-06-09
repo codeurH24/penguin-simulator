@@ -2,7 +2,7 @@
 // Équivalent de /usr/sbin/userdel sous Debian
 
 import { removeUser, isRoot, getCurrentUser } from '../modules/users/user.service.js';
-import { showError, showSuccess } from '../modules/terminal.js';
+import { showError, showSuccess } from '../modules/terminal/terminal.js';
 
 /**
  * Commande userdel - Supprime un utilisateur du système

@@ -2,7 +2,7 @@
 // Équivalent de /bin/ls sous Debian avec coloration
 
 import { resolvePath } from '../modules/filesystem.js';
-import { addLine, showError } from '../modules/terminal.js';
+import { addLine, showError } from '../modules/terminal/terminal.js';
 
 /**
  * Commande ls - Liste le contenu d'un répertoire avec couleurs

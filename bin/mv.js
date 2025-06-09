@@ -2,7 +2,7 @@
 // Équivalent de /bin/mv sous Debian
 
 import { resolvePath, getBasename } from '../modules/filesystem.js';
-import { showError, showSuccess } from '../modules/terminal.js';
+import { showError, showSuccess } from '../modules/terminal/terminal.js';
 
 /**
  * Commande mv - Déplace/renomme des fichiers et dossiers

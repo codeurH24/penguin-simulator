@@ -134,3 +134,83 @@ export function getRelativePath(fromPath, toPath) {
     
     return relativeParts.length === 0 ? '.' : relativeParts.join('/');
 }
+
+/**
+ * Obtient un nœud du système de fichiers
+ * @param {Object} fs - Système de fichiers
+ * @param {string} path - Chemin du nœud
+ * @returns {Object|null} - Nœud ou null si inexistant
+ */
+export function getNode(fs, path) {
+    return fs[path] || null;
+}
+
+/**
+ * Crée un fichier dans le système de fichiers
+ * @param {Object} fs - Système de fichiers
+ * @param {string} path - Chemin du fichier
+ * @param {string} content - Contenu du fichier
+ */
+export function createFile(fs, path, content = '') {
+    const now = new Date();
+    fs[path] = {
+        type: 'file',
+        size: content.length,
+        content: content,
+        created: now,
+        modified: now,
+        accessed: now,
+        permissions: '-rw-r--r--',
+        owner: 'root',
+        group: 'root',
+        links: 1
+    };
+}
+
+/**
+ * Supprime un nœud du système de fichiers
+ * @param {Object} fs - Système de fichiers
+ * @param {string} path - Chemin du nœud
+ */
+export function removeNode(fs, path) {
+    delete fs[path];
+    
+    // Si c'est un dossier, supprimer aussi tout son contenu
+    const prefix = path === '/' ? '/' : path + '/';
+    Object.keys(fs).forEach(key => {
+        if (key.startsWith(prefix)) {
+            delete fs[key];
+        }
+    });
+}
+
+/**
+ * Liste le contenu d'un répertoire
+ * @param {Object} fs - Système de fichiers
+ * @param {string} dirPath - Chemin du répertoire
+ * @returns {Array} - Liste des entrées {name, type, path}
+ */
+export function listDirectory(fs, dirPath) {
+    if (!fs[dirPath] || fs[dirPath].type !== 'dir') {
+        throw new Error('Not a directory');
+    }
+    
+    const prefix = dirPath === '/' ? '/' : dirPath + '/';
+    const entries = [];
+    
+    Object.keys(fs).forEach(path => {
+        if (path === dirPath) return;
+        if (!path.startsWith(prefix)) return;
+        
+        const relativePath = path.substring(prefix.length);
+        if (!relativePath.includes('/')) {
+            entries.push({
+                name: relativePath,
+                type: fs[path].type,
+                path: path
+            });
+        }
+    });
+    
+    return entries;
+}

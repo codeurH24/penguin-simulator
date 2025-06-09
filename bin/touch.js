@@ -2,7 +2,7 @@
 // Équivalent de /usr/bin/touch sous Debian
 
 import { resolvePath, getDirname } from '../modules/filesystem.js';
-import { showError, showSuccess } from '../modules/terminal.js';
+import { showError, showSuccess } from '../modules/terminal/terminal.js';
 
 /**
  * Commande touch - Crée des fichiers vides ou met à jour les dates

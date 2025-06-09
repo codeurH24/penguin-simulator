@@ -2,7 +2,7 @@
 // Chaque contexte est un objet indépendant avec ses propres données
 
 import { getCurrentUser, initUserSystem } from '../modules/users/user.service.js';
-import { updatePrompt, addLine } from '../modules/terminal.js';
+import { updatePrompt, addLine } from '../modules/terminal/terminal.js';
 import { saveData, loadData, isDBReady } from '../modules/storage.js';
 
 // Instance globale pour l'application principale
@@ -25,6 +25,22 @@ function createDirectoryEntry() {
         group: 'root',
         links: 2
     };
+}
+
+/**
+ * Obtient le chemin du home de l'utilisateur
+ * @returns {string} - Chemin du home
+ */
+function getHomePath() {
+    const user = getCurrentUser();
+    return user.username === 'root' ? '/root' : `/home/${user.username}`;
+}
+
+/**
+ * Getter pour le système de fichiers (alias pour fileSystem)
+ */
+function fs() {
+    return this.fileSystem;
 }
 
 /**

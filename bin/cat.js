@@ -2,7 +2,7 @@
 // Équivalent de /bin/cat sous Debian
 
 import { resolvePath } from '../modules/filesystem.js';
-import { addLine, showError } from '../modules/terminal.js';
+import { addLine, showError } from '../modules/terminal/terminal.js';
 
 /**
  * Commande cat - Affiche et concatène le contenu de fichiers

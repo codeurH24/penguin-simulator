@@ -2,7 +2,7 @@
 // Équivalents de whoami, id, groups sous Debian
 
 import { getCurrentUser, parseGroupFile } from '../modules/users/user.service.js';
-import { addLine, showError } from '../modules/terminal.js';
+import { addLine, showError } from '../modules/terminal/terminal.js';
 
 /**
  * Commande whoami - Affiche le nom de l'utilisateur courant

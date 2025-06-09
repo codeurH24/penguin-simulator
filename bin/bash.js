@@ -1,7 +1,7 @@
 // bin/bash.js - Shell bash et dispatcher de commandes avec gestion des redirections
 // Shell principal avec architecture modulaire
 
-import { addLine, showError } from '../modules/terminal.js';
+import { addLine, showError } from '../modules/terminal/terminal.js';
 import { cmdRm } from './rm.js';
 import { cmdLs } from './ls.js';
 import { cmdMkdir } from './mkdir.js';
@@ -32,6 +32,7 @@ import {
     validateRedirections,
     separateRedirections 
 } from '../lib/bash-parser.js';
+import { resolvePath } from '../modules/filesystem.js';
 
 /**
  * Exécute une commande avec capture de sortie
@@ -43,28 +44,20 @@ import {
 function executeCommandWithCapture(cmd, args, context) {
     let output = '';
     
-    // Fonction de capture qui accumule la sortie
     const captureAddLine = (text) => {
-        output += text + '\n';
+        output += text;
     };
     
-    // Créer un contexte temporaire avec la fonction de capture
     const captureContext = {
         ...context,
         addLine: captureAddLine
     };
     
-    try {
-        // Exécuter la commande
-        if (!executeSingleCommand(cmd, args, captureContext, true)) {
-            throw new Error(`bash: ${cmd}: commande introuvable`);
-        }
-    } catch (error) {
-        throw error;
+    if (!executeSingleCommand(cmd, args, captureContext, true)) {
+        throw new Error(`bash: ${cmd}: commande introuvable`);
     }
     
-    // Enlever le dernier \n s'il existe
-    return output.replace(/\n$/, '');
+    return output;
 }
 
 /**
@@ -144,11 +137,11 @@ export function executeCommand(command, context) {
     if (!trimmedCommand) return;
 
     try {
-        // Parser la ligne de commande avec gestion des guillemets
+        // Parser la ligne de commande
         const parts = parseCommandLine(trimmedCommand);
         if (parts.length === 0) return;
 
-        // Vérifier si c'est une assignation de variable (var=value)
+        // Vérifier assignation de variable
         if (parts.length === 1 && isVariableAssignment(parts[0])) {
             handleVariableAssignment(parts[0], context);
             return;
@@ -165,30 +158,50 @@ export function executeCommand(command, context) {
         const cmd = cmdParts[0];
         const args = cmdParts.slice(1);
 
-        // Substituer les variables dans les arguments
+        // Substituer les variables
         const substitutedArgs = substituteVariablesInArgs(args, context);
 
-        // Valider les redirections
-        const validation = validateRedirections(cmd, redirections);
-        if (!validation.valid) {
-            showError(validation.error);
+        // Valider les redirections (fonction n'accepte qu'un seul paramètre)
+        const errors = validateRedirections(redirections);
+        if (errors.length > 0) {
+            errors.forEach(err => showError(err));
             return;
         }
 
-        // Séparer les redirections
-        const { input: inputRedirections, output: outputRedirections } = separateRedirections(redirections);
-
-        // Exécuter la commande
-        if (outputRedirections.length > 0) {
-            // Commande avec redirection de sortie - capturer la sortie
+        // Exécuter avec redirections si nécessaire
+        if (redirections.output || redirections.append) {
+            // Capturer la sortie
             const output = executeCommandWithCapture(cmd, substitutedArgs, context);
             
-            // Appliquer les redirections de sortie
-            outputRedirections.forEach(redirection => {
-                handleOutputRedirection(redirection, output, context);
-            });
+            // Écrire dans le fichier
+            const fileName = redirections.output || redirections.append;
+            const filePath = resolvePath(fileName, context.getCurrentPath());
+            
+            if (!context.fileSystem[filePath] || redirections.output) {
+                // Créer ou écraser le fichier
+                context.fileSystem[filePath] = {
+                    type: 'file',
+                    size: output.length,
+                    content: output,
+                    created: new Date(),
+                    modified: new Date(),
+                    accessed: new Date(),
+                    permissions: '-rw-r--r--',
+                    owner: 'root',
+                    group: 'root',
+                    links: 1
+                };
+            } else {
+                // Append au fichier existant
+                const file = context.fileSystem[filePath];
+                file.content = (file.content || '') + output;
+                file.size = file.content.length;
+                file.modified = new Date();
+            }
+            
+            context.saveFileSystem();
         } else {
-            // Commande normale
+            // Exécution normale
             executeSingleCommand(cmd, substitutedArgs, context);
         }
         

@@ -2,7 +2,7 @@
 // Équivalent de /bin/rm sous Debian avec globbing
 
 import { resolvePath } from '../modules/filesystem.js';
-import { showError, showSuccess } from '../modules/terminal.js';
+import { showError, showSuccess } from '../modules/terminal/terminal.js';
 
 /**
  * Expanse un pattern en liste de fichiers matchants (globbing)
@@ -12,57 +12,43 @@ import { showError, showSuccess } from '../modules/terminal.js';
  * @returns {Array} - Liste des fichiers matchants
  */
 function expandGlob(pattern, currentPath, fileSystem) {
-    // Si pas de wildcards, retourner le pattern tel quel
     if (!pattern.includes('*') && !pattern.includes('?')) {
         return [pattern];
     }
     
-    // Resoudre le repertoire de base du pattern
-    let patternPath;
-    if (pattern.includes('/')) {
-        if (pattern.startsWith('/')) {
-            patternPath = pattern;
-        } else {
-            patternPath = currentPath + '/' + pattern;
-        }
-    } else {
-        patternPath = currentPath + '/' + pattern;
+    // Séparer le chemin du pattern
+    const lastSlash = pattern.lastIndexOf('/');
+    let dirPath = '';
+    let filePattern = pattern;
+    
+    if (lastSlash !== -1) {
+        dirPath = pattern.substring(0, lastSlash);
+        filePattern = pattern.substring(lastSlash + 1);
     }
     
-    const basePath = patternPath.substring(0, patternPath.lastIndexOf('/')) || currentPath;
-    const filePattern = patternPath.substring(patternPath.lastIndexOf('/') + 1);
+    // Résoudre le chemin du dossier
+    const searchPath = dirPath ? resolvePath(dirPath, currentPath) : currentPath;
     
-    // Creer une regex a partir du pattern
+    // Créer regex
     const regexPattern = filePattern
-        .replace(/\./g, '\\.')
+        .replace(/[.+^${}()|[\]\\]/g, '\\$&')
         .replace(/\*/g, '.*')
         .replace(/\?/g, '.');
-    
     const regex = new RegExp('^' + regexPattern + '$');
     
-    // Trouver tous les fichiers dans le repertoire de base
-    const matchingFiles = [];
-    
+    // Chercher les fichiers
+    const matches = [];
     Object.keys(fileSystem).forEach(path => {
-        const parentPath = path.substring(0, path.lastIndexOf('/')) || '/';
-        if (parentPath === basePath) {
-            const fileName = path.substring(path.lastIndexOf('/') + 1);
-            
-            if (regex.test(fileName)) {
-                if (pattern.startsWith('/')) {
-                    matchingFiles.push(path);
-                } else if (pattern.includes('/')) {
-                    const relativePath = path.startsWith(currentPath + '/') ? 
-                        path.substring(currentPath.length + 1) : path;
-                    matchingFiles.push(relativePath);
-                } else {
-                    matchingFiles.push(fileName);
-                }
+        const parent = path.substring(0, path.lastIndexOf('/')) || '/';
+        if (parent === searchPath) {
+            const name = path.substring(path.lastIndexOf('/') + 1);
+            if (regex.test(name)) {
+                matches.push(dirPath ? `${dirPath}/${name}` : name);
             }
         }
     });
     
-    return matchingFiles.length > 0 ? matchingFiles : [pattern];
+    return matches.length > 0 ? matches : [pattern];
 }
 
 /**

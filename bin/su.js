@@ -2,7 +2,7 @@
 // Équivalent de /bin/su sous Debian
 
 import { switchUser, getCurrentUser, getUserInfo } from '../modules/users/user.service.js';
-import { showError } from '../modules/terminal.js';
+import { showError } from '../modules/terminal/terminal.js';
 
 /**
  * Commande su - Change d'utilisateur (SILENCIEUX comme le vrai bash)

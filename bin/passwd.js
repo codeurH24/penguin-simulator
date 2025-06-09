@@ -10,7 +10,7 @@ import {
     getUserInfo, 
     isRoot 
 } from '../modules/users/user.service.js';
-import { showError, showSuccess, addLine, startPasswordInput } from '../modules/terminal.js';
+import { showError, showSuccess, addLine, startPasswordInput } from '../modules/terminal/terminal.js';
 
 /**
  * Vérifie si un utilisateur a un mot de passe valide (pas !, *, ou vide)
