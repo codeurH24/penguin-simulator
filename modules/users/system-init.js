@@ -2,10 +2,12 @@
 // Initialisation du système d'utilisateurs
 
 import { createFileEntry } from './file-utils.js';
-import { DEFAULT_PASSWD_CONTENT } from './defaults/passwd-content.js';
-import { DEFAULT_SHADOW_CONTENT } from './defaults/shadow-content.js';
-import { DEFAULT_GROUP_CONTENT } from './defaults/group-content.js';
-import { DEFAULT_SUDOERS_CONTENT } from './defaults/sudoers-content.js';
+import { 
+    DEFAULT_PASSWD_CONTENT,
+    DEFAULT_SHADOW_CONTENT, 
+    DEFAULT_GROUP_CONTENT,
+    DEFAULT_SUDOERS_CONTENT
+} from './defaults/index.js';
 import { createSkelStructure } from './defaults/skel-content.js';
 
 /**
