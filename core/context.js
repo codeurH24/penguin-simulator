@@ -43,7 +43,7 @@ class Context {
         this.isTestMode = options.testMode || false;
         
         // Initialiser les fichiers système
-        initUserSystem(this.fileSystem);
+        initUserSystem(this.fileSystem, () => this.saveFileSystem());
     }
     
     /**
@@ -109,7 +109,7 @@ class Context {
             // Réinitialiser les fichiers système si nécessaire
             if (!this.fileSystem['/etc/passwd']) {
                 console.log('Fichiers système manquants, re-initialisation...');
-                initUserSystem(this.fileSystem);
+                initUserSystem(this.fileSystem, () => this.saveFileSystem());
             }
             
             if (!this.isTestMode) {
@@ -144,7 +144,7 @@ class Context {
         // Vérification finale
         if (!this.fileSystem['/etc/passwd']) {
             console.error('ERREUR: /etc/passwd manquant, re-initialisation forcée');
-            initUserSystem(this.fileSystem);
+            initUserSystem(this.fileSystem, () => this.saveFileSystem());
         }
         
         if (!this.shellVariables.OLDPWD) {
