@@ -17,7 +17,7 @@ function testEchoNoArguments() {
     // Vérifier qu'une ligne vide a été affichée
     const captures = getCaptures();
     assert.captureCount(1, 'echo sans arguments devrait capturer 1 ligne');
-    assert.equals(captures[0].text, '', 'echo sans arguments devrait afficher une ligne vide');
+    assert.equals(captures[0].text, '\n', 'echo sans arguments devrait afficher une ligne vide avec newline');
     assert.equals(captures[0].className, '', 'echo ne devrait pas avoir de classe CSS spéciale');
     
     console.log('✅ echo sans arguments fonctionne');
@@ -37,7 +37,7 @@ function testEchoSimpleText() {
     // Vérifier l'affichage
     const captures = getCaptures();
     assert.captureCount(1, 'echo avec texte simple devrait capturer 1 ligne');
-    assert.equals(captures[0].text, 'Hello', 'echo devrait afficher "Hello"');
+    assert.equals(captures[0].text, 'Hello\n', 'echo devrait afficher "Hello" avec newline');
     
     console.log('✅ echo avec texte simple fonctionne');
     return true;
@@ -56,7 +56,7 @@ function testEchoMultipleWords() {
     // Vérifier l'affichage
     const captures = getCaptures();
     assert.captureCount(1, 'echo avec plusieurs mots devrait capturer 1 ligne');
-    assert.equals(captures[0].text, 'Hello world from echo', 'echo devrait joindre les mots avec des espaces');
+    assert.equals(captures[0].text, 'Hello world from echo\n', 'echo devrait joindre les mots avec des espaces et newline');
     
     console.log('✅ echo avec plusieurs mots fonctionne');
     return true;
@@ -75,7 +75,7 @@ function testEchoWithSpaces() {
     // Vérifier l'affichage
     const captures = getCaptures();
     assert.captureCount(1, 'echo avec espaces devrait capturer 1 ligne');
-    assert.equals(captures[0].text, 'This is a test', 'echo devrait préserver le texte avec espaces');
+    assert.equals(captures[0].text, 'This is a test\n', 'echo devrait préserver le texte avec espaces et newline');
     
     console.log('✅ echo avec espaces fonctionne');
     return true;
@@ -94,7 +94,7 @@ function testEchoSpecialCharacters() {
     // Vérifier l'affichage
     const captures = getCaptures();
     assert.captureCount(1, 'echo avec caractères spéciaux devrait capturer 1 ligne');
-    assert.equals(captures[0].text, 'Hello! @#$% &*() 123', 'echo devrait gérer les caractères spéciaux');
+    assert.equals(captures[0].text, 'Hello! @#$% &*() 123\n', 'echo devrait gérer les caractères spéciaux');
     
     console.log('✅ echo avec caractères spéciaux fonctionne');
     return true;
@@ -113,7 +113,7 @@ function testEchoEmptyString() {
     // Vérifier l'affichage
     const captures = getCaptures();
     assert.captureCount(1, 'echo avec chaîne vide devrait capturer 1 ligne');
-    assert.equals(captures[0].text, '', 'echo avec chaîne vide devrait afficher une ligne vide');
+    assert.equals(captures[0].text, '\n', 'echo avec chaîne vide devrait afficher juste newline');
     
     console.log('✅ echo avec chaîne vide fonctionne');
     return true;
@@ -132,7 +132,7 @@ function testEchoMixedArguments() {
     // Vérifier l'affichage (les arguments vides deviennent des espaces supplémentaires)
     const captures = getCaptures();
     assert.captureCount(1, 'echo avec arguments mixtes devrait capturer 1 ligne');
-    assert.equals(captures[0].text, 'Hello  world  !', 'echo devrait joindre tous les arguments même vides');
+    assert.equals(captures[0].text, 'Hello  world  !\n', 'echo devrait joindre tous les arguments même vides');
     
     console.log('✅ echo avec arguments mixtes fonctionne');
     return true;
@@ -151,7 +151,7 @@ function testEchoNumbers() {
     // Vérifier l'affichage
     const captures = getCaptures();
     assert.captureCount(1, 'echo avec nombres devrait capturer 1 ligne');
-    assert.equals(captures[0].text, '123 456.789 -42 0', 'echo devrait afficher les nombres comme du texte');
+    assert.equals(captures[0].text, '123 456.789 -42 0\n', 'echo devrait afficher les nombres comme du texte');
     
     console.log('✅ echo avec nombres fonctionne');
     return true;
@@ -170,7 +170,7 @@ function testEchoBackslashesWithoutOption() {
     // Vérifier l'affichage (les backslashes devraient être littéraux)
     const captures = getCaptures();
     assert.captureCount(1, 'echo sans -e devrait capturer 1 ligne');
-    assert.equals(captures[0].text, 'Hello\\nworld\\ttest', 'echo sans -e ne devrait pas interpréter les séquences d\'échappement');
+    assert.equals(captures[0].text, 'Hello\\nworld\\ttest\n', 'echo sans -e ne devrait pas interpréter les séquences d\'échappement');
     
     console.log('✅ echo sans -e garde les backslashes littéraux');
     return true;
@@ -189,7 +189,7 @@ function testEchoQuotedArguments() {
     // Vérifier l'affichage
     const captures = getCaptures();
     assert.captureCount(1, 'echo avec guillemets devrait capturer 1 ligne');
-    assert.equals(captures[0].text, '"Hello world" \'test\'', 'echo devrait préserver les guillemets');
+    assert.equals(captures[0].text, '"Hello world" \'test\'\n', 'echo devrait préserver les guillemets');
     
     console.log('✅ echo avec guillemets fonctionne');
     return true;
@@ -211,7 +211,7 @@ function testEchoOutputFunction() {
     cmdEcho(['Custom output test'], context);
     
     // Vérifier que la fonction personnalisée a été utilisée
-    assert.equals(customOutput, 'Custom output test', 'echo devrait utiliser la fonction de sortie du contexte');
+    assert.equals(customOutput, 'Custom output test\n', 'echo devrait utiliser la fonction de sortie du contexte');
     
     console.log('✅ echo utilise la fonction de sortie du contexte');
     return true;

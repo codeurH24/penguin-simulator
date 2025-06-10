@@ -1,15 +1,8 @@
-// bin/echo.js - Commande echo isolée avec support des redirections
-// Équivalent de /bin/echo sous Debian
-
-import { addLine } from '../modules/terminal/terminal.js';
-
-/**
- * Commande echo - Affiche une ligne de texte
- * @param {Array} args - Arguments de la commande
- * @param {Object} context - Contexte (peut contenir addLine personnalisé)
- */
+// Remplacez cmdEcho dans bin/echo.js par :
+import { addLine, write, flushLine, showError } from '../modules/terminal/terminal.js';
+    
 export function cmdEcho(args, context) {
-    const outputFn = context?.addLine || addLine;
+    let outputFn = context?.addLine || addLine;
     
     // Options
     let noNewline = false;
@@ -69,44 +62,24 @@ export function cmdEcho(args, context) {
             .replace(/\\r/g, '\r')
             .replace(/\\b/g, '\b')
             .replace(/\\f/g, '\f')
-            .replace(/\\a/g, '\x07')
+            .replace(/\\a/g, '')
             .replace(/\\v/g, '\x0B')
             .replace(/\\\\/g, '\\')
             .replace(/\\"/g, '"')
+            .replace(/\\0/g, '')
             .replace(/\\'/g, "'");
             
         // Octal et hex
-        text = text.replace(/\\([0-7]{1,3})/g, (match, octal) => {
-            return String.fromCharCode(parseInt(octal, 8));
-        });
+        text = text.replace(/\\([0-9]+)/g, '\\$1'); 
         text = text.replace(/\\x([0-9A-Fa-f]{1,2})/g, (match, hex) => {
             return String.fromCharCode(parseInt(hex, 16));
         });
     }
     
-    // Afficher le texte
-    outputFn(text);
-    
-    // Ajouter nouvelle ligne seulement si pas -n
-    if (!noNewline) {
-        outputFn('\n');
+    // Afficher avec ou sans nouvelle ligne
+    if (noNewline) {
+        outputFn(text);
+    } else {
+        outputFn(text + '\n');
     }
-}
-
-/**
- * Interprète les séquences d'échappement (\n, \t, etc.)
- * @param {string} text - Texte avec potentielles séquences d'échappement
- * @returns {string} - Texte avec séquences interprétées
- */
-function interpretEscapeSequences(text) {
-    return text
-        .replace(/\\n/g, '\n')    // Nouvelle ligne
-        .replace(/\\t/g, '\t')    // Tabulation
-        .replace(/\\r/g, '\r')    // Retour chariot
-        .replace(/\\b/g, '\b')    // Backspace
-        .replace(/\\f/g, '\f')    // Form feed
-        .replace(/\\v/g, '\v')    // Tabulation verticale
-        .replace(/\\a/g, '\a')    // Alert (bell)
-        .replace(/\\\\/g, '\\')   // Backslash littéral
-        .replace(/\\0/g, '\0');   // Caractère null
 }

@@ -19,7 +19,9 @@ import {
     showSuccess, 
     showInfo,
     showListing,
-    scrollToBottom 
+    scrollToBottom,
+    write,
+    flushLine
 } from './display.js';
 
 import { 
@@ -173,7 +175,9 @@ export {
     showSuccess, 
     showInfo,
     showListing,
-    scrollToBottom 
+    scrollToBottom,
+    write,
+    flushLine
 };
 
 /**

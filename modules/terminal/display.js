@@ -2,6 +2,7 @@
 // Gestion de l'affichage du terminal (lignes, messages, formatage)
 
 import { getTerminalElement } from './dom.js';
+let currentLine = null;
 
 /**
  * Ajoute une ligne de texte au terminal
@@ -122,4 +123,47 @@ export function scrollToBottom() {
     if (terminal) {
         terminal.scrollTop = terminal.scrollHeight;
     }
+}
+
+/**
+ * Écrit du texte sur la ligne actuelle sans sauter de ligne
+ * @param {string} text - Texte à écrire
+ */
+export function write(text) {
+    const terminal = getTerminalElement();
+    if (!terminal) {
+        console.error('Terminal non initialisé');
+        return;
+    }
+
+    if (!currentLine) {
+        currentLine = document.createElement('div');
+        currentLine.className = 'line';
+        const inputContainer = document.querySelector('.input-container');
+        terminal.insertBefore(currentLine, inputContainer);
+    }
+
+    // Crée un span pour garder le style inline
+    const span = document.createElement('span');
+    span.textContent = text;
+    currentLine.appendChild(span);
+    terminal.scrollTop = terminal.scrollHeight;
+}
+
+/**
+ * Force une nouvelle ligne (à utiliser après des write() pour simuler addLine)
+ */
+export function flushLine(className = '') {
+    const terminal = getTerminalElement();
+    if (!terminal || !currentLine) return;
+
+    currentLine.className = 'line';
+    if (className) currentLine.classList.add(className);
+
+    const inputContainer = document.querySelector('.input-container');
+    terminal.insertBefore(currentLine, inputContainer);
+
+    terminal.scrollTop = terminal.scrollHeight;
+
+    currentLine = null;
 }

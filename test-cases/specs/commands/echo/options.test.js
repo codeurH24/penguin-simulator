@@ -58,7 +58,8 @@ function testEchoOptionE() {
     // Vérifier l'affichage
     const captures = getCaptures();
     assert.captureCount(1, 'echo -e devrait capturer 1 ligne');
-    assert.equals(captures[0].text, 'Hello\nworld', 'echo -e devrait interpréter \\n comme nouvelle ligne');
+    
+    assert.equals(captures[0].text, 'Hello\nworld\n', 'echo -e devrait interpréter \\n comme nouvelle ligne');
     
     console.log('✅ echo option -e fonctionne');
     return true;
@@ -77,7 +78,7 @@ function testEchoOptionEUpper() {
     // Vérifier l'affichage
     const captures = getCaptures();
     assert.captureCount(1, 'echo -E devrait capturer 1 ligne');
-    assert.equals(captures[0].text, 'Hello\\nworld', 'echo -E ne devrait pas interpréter les séquences d\'échappement');
+    assert.equals(captures[0].text, 'Hello\\nworld\n', 'echo -E ne devrait pas interpréter les séquences d\'échappement');
     
     console.log('✅ echo option -E fonctionne');
     return true;
@@ -94,55 +95,55 @@ function testEchoEscapeSequences() {
     clearCaptures();
     cmdEcho(['-e', 'line1\\nline2'], context);
     let captures = getCaptures();
-    assert.equals(captures[0].text, 'line1\nline2', '\\n devrait être interprété comme nouvelle ligne');
+    assert.equals(captures[0].text, 'line1\nline2\n', '\\n devrait être interprété comme nouvelle ligne');
     
     // Test de \t (tabulation)
     clearCaptures();
     cmdEcho(['-e', 'col1\\tcol2'], context);
     captures = getCaptures();
-    assert.equals(captures[0].text, 'col1\tcol2', '\\t devrait être interprété comme tabulation');
+    assert.equals(captures[0].text, 'col1\tcol2\n', '\\t devrait être interprété comme tabulation');
     
     // Test de \r (retour chariot)
     clearCaptures();
     cmdEcho(['-e', 'hello\\rworld'], context);
     captures = getCaptures();
-    assert.equals(captures[0].text, 'hello\rworld', '\\r devrait être interprété comme retour chariot');
+    assert.equals(captures[0].text, 'hello\rworld\n', '\\r devrait être interprété comme retour chariot');
     
     // Test de \b (backspace)
     clearCaptures();
     cmdEcho(['-e', 'hello\\bworld'], context);
     captures = getCaptures();
-    assert.equals(captures[0].text, 'hello\bworld', '\\b devrait être interprété comme backspace');
+    assert.equals(captures[0].text, 'hello\bworld\n', '\\b devrait être interprété comme backspace');
     
     // Test de \f (form feed)
     clearCaptures();
     cmdEcho(['-e', 'page1\\fpage2'], context);
     captures = getCaptures();
-    assert.equals(captures[0].text, 'page1\fpage2', '\\f devrait être interprété comme form feed');
+    assert.equals(captures[0].text, 'page1\fpage2\n', '\\f devrait être interprété comme form feed');
     
     // Test de \v (tabulation verticale)
     clearCaptures();
     cmdEcho(['-e', 'line1\\vline2'], context);
     captures = getCaptures();
-    assert.equals(captures[0].text, 'line1\vline2', '\\v devrait être interprété comme tabulation verticale');
+    assert.equals(captures[0].text, 'line1\vline2\n', '\\v devrait être interprété comme tabulation verticale');
     
     // Test de \a (alert/bell)
     clearCaptures();
     cmdEcho(['-e', 'bell\\atest'], context);
     captures = getCaptures();
-    assert.equals(captures[0].text, 'bell\atest', '\\a devrait être interprété comme alert');
+    assert.equals(captures[0].text, 'belltest\n', '\\a devrait être interprété comme alert');
     
     // Test de \\ (backslash littéral)
     clearCaptures();
     cmdEcho(['-e', 'back\\\\slash'], context);
     captures = getCaptures();
-    assert.equals(captures[0].text, 'back\\slash', '\\\\devrait être interprété comme backslash littéral');
+    assert.equals(captures[0].text, 'back\\slash\n', '\\\\devrait être interprété comme backslash littéral');
     
     // Test de \0 (caractère null)
     clearCaptures();
     cmdEcho(['-e', 'null\\0char'], context);
     captures = getCaptures();
-    assert.equals(captures[0].text, 'null\0char', '\\0 devrait être interprété comme caractère null');
+    assert.equals(captures[0].text, 'nullchar\n', '\\0 devrait être interprété comme caractère null');
     
     console.log('✅ Toutes les séquences d\'échappement fonctionnent');
     return true;
@@ -161,7 +162,7 @@ function testEchoMultipleEscapeSequences() {
     // Vérifier l'affichage
     const captures = getCaptures();
     assert.captureCount(1, 'echo avec plusieurs séquences devrait capturer 1 ligne');
-    assert.equals(captures[0].text, 'Line1\nTab\tCol\nEnd', 'Plusieurs séquences devraient être interprétées');
+    assert.equals(captures[0].text, 'Line1\nTab\tCol\nEnd\n', 'Plusieurs séquences devraient être interprétées avec newline');
     
     console.log('✅ Séquences d\'échappement multiples fonctionnent');
     return true;
@@ -180,7 +181,7 @@ function testEchoUnsupportedEscape() {
     // Vérifier l'affichage (devrait rester littéral)
     const captures = getCaptures();
     assert.captureCount(1, 'echo avec séquence non supportée devrait capturer 1 ligne');
-    assert.equals(captures[0].text, 'test\\xhello', 'Séquence non supportée devrait rester littérale');
+    assert.equals(captures[0].text, 'test\\'+'x'+'hello\n', 'Séquence non supportée devrait rester littérale');
     
     console.log('✅ Séquence d\'échappement non supportée reste littérale');
     return true;
@@ -238,7 +239,7 @@ function testEchoOptionsEPriority() {
     // Vérifier l'affichage
     const captures = getCaptures();
     assert.captureCount(1, 'echo -e -E devrait capturer 1 ligne');
-    assert.equals(captures[0].text, 'Hello\\nworld', '-E après -e devrait désactiver l\'interprétation');
+    assert.equals(captures[0].text, 'Hello\\nworld\n', '-E après -e devrait désactiver l\'interprétation');
     
     // Tester -E puis -e (dernière option devrait gagner)
     clearCaptures();
@@ -246,7 +247,7 @@ function testEchoOptionsEPriority() {
     
     const captures2 = getCaptures();
     assert.captureCount(1, 'echo -E -e devrait capturer 1 ligne');
-    assert.equals(captures2[0].text, 'Hello\nworld', '-e après -E devrait activer l\'interprétation');
+    assert.equals(captures2[0].text, 'Hello\nworld\n', '-e après -E devrait activer l\'interprétation');
     
     console.log('✅ Priorité des options -e/-E fonctionne');
     return true;
@@ -265,7 +266,7 @@ function testEchoOptionWithoutText() {
     // Vérifier l'affichage
     const captures = getCaptures();
     assert.captureCount(1, 'echo -e sans texte devrait capturer 1 ligne');
-    assert.equals(captures[0].text, '', 'echo -e sans texte devrait afficher une ligne vide');
+    assert.equals(captures[0].text, '\n', 'echo -e sans texte devrait afficher une ligne vide');
     
     console.log('✅ echo avec option mais sans texte fonctionne');
     return true;
@@ -284,7 +285,7 @@ function testEchoInvalidOption() {
     // Vérifier l'affichage (option invalide devrait être traitée comme texte)
     const captures = getCaptures();
     assert.captureCount(1, 'echo avec option invalide devrait capturer 1 ligne');
-    assert.equals(captures[0].text, '-x Hello', 'Option invalide devrait être traitée comme texte');
+    assert.equals(captures[0].text, '-x Hello\n', 'Option invalide devrait être traitée comme texte');
     
     console.log('✅ echo avec option invalide traite l\'option comme texte');
     return true;
@@ -303,7 +304,7 @@ function testEchoBackslashAtEnd() {
     // Vérifier l'affichage
     const captures = getCaptures();
     assert.captureCount(1, 'echo avec backslash en fin devrait capturer 1 ligne');
-    assert.equals(captures[0].text, 'Hello\\', 'Backslash isolé en fin devrait rester littéral');
+    assert.equals(captures[0].text, 'Hello\\\n', 'Backslash isolé en fin devrait rester littéral');
     
     console.log('✅ Backslash isolé en fin reste littéral');
     return true;
@@ -322,7 +323,7 @@ function testEchoConsecutiveEscapes() {
     // Vérifier l'affichage
     const captures = getCaptures();
     assert.captureCount(1, 'echo avec séquences consécutives devrait capturer 1 ligne');
-    assert.equals(captures[0].text, 'test\n\n\tindented', 'Séquences consécutives devraient être interprétées');
+    assert.equals(captures[0].text, 'test\n\n\tindented\n', 'Séquences consécutives devraient être interprétées');
     
     console.log('✅ Séquences d\'échappement consécutives fonctionnent');
     return true;

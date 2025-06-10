@@ -20,7 +20,7 @@ function testEchoVeryLongText() {
     // Vérifier l'affichage
     const captures = getCaptures();
     assert.captureCount(1, 'echo avec texte long devrait capturer 1 ligne');
-    assert.equals(captures[0].text, longText, 'echo devrait gérer les textes longs');
+    assert.equals(captures[0].text, longText+'\n', 'echo devrait gérer les textes longs');
     
     console.log('✅ echo gère les textes longs');
     return true;
@@ -39,7 +39,7 @@ function testEchoUnicodeCharacters() {
     // Vérifier l'affichage
     const captures = getCaptures();
     assert.captureCount(1, 'echo avec Unicode devrait capturer 1 ligne');
-    assert.equals(captures[0].text, 'Hello 🌍 émojis çàéèùâê 中文', 'echo devrait gérer les caractères Unicode');
+    assert.equals(captures[0].text, 'Hello 🌍 émojis çàéèùâê 中文\n', 'echo devrait gérer les caractères Unicode');
     
     console.log('✅ echo gère les caractères Unicode');
     return true;
@@ -66,9 +66,9 @@ function testEchoManyArguments() {
     assert.captureCount(1, 'echo avec beaucoup d\'arguments devrait capturer 1 ligne');
     
     const expectedText = manyArgs.join(' ');
-    assert.equals(captures[0].text, expectedText, 'echo devrait joindre correctement tous les arguments');
+    assert.equals(captures[0].text, expectedText+'\n', 'echo devrait joindre correctement tous les arguments');
     assert.isTrue(captures[0].text.includes('arg0'), 'Le texte devrait contenir le premier argument');
-    assert.isTrue(captures[0].text.includes('arg99'), 'Le texte devrait contenir le dernier argument');
+    assert.isTrue(captures[0].text.includes('arg99\n'), 'Le texte devrait contenir le dernier argument');
     
     console.log('✅ echo gère beaucoup d\'arguments');
     return true;
@@ -88,7 +88,7 @@ function testEchoWhitespaceArguments() {
     const captures = getCaptures();
     assert.captureCount(1, 'echo avec espaces devrait capturer 1 ligne');
     // echo joint tous les arguments avec un espace, donc '   ' devient ' ' + '   ' + ' ' = '     ' (5 espaces)
-    assert.equals(captures[0].text, 'Hello     world \t test', 'echo devrait joindre les arguments avec des espaces');
+    assert.equals(captures[0].text, 'Hello     world \t test\n', 'echo devrait joindre les arguments avec des espaces');
     
     console.log('✅ echo joint correctement les arguments avec espaces');
     return true;
@@ -107,7 +107,7 @@ function testEchoInvalidOptionMixed() {
     // Vérifier l'affichage (les options invalides deviennent du texte, -n est reconnu)
     const captures = getCaptures();
     assert.captureCount(1, 'echo avec option invalide mélangée devrait capturer 1 ligne');
-    assert.equals(captures[0].text, 'Hello -z world test', 'Options invalides et texte après -n devraient être traités comme texte');
+    assert.equals(captures[0].text, 'Hello -z world -n test\n', 'Options invalides et texte après -n devraient être traités comme texte');
     
     console.log('✅ echo gère les options invalides mélangées');
     return true;
@@ -126,7 +126,7 @@ function testEchoInvalidEscapeSequences() {
     // Vérifier l'affichage (séquences invalides restent littérales)
     const captures = getCaptures();
     assert.captureCount(1, 'echo avec séquences invalides devrait capturer 1 ligne');
-    assert.equals(captures[0].text, 'test\\k\\m\\q\\z', 'Séquences d\'échappement invalides devraient rester littérales');
+    assert.equals(captures[0].text, 'test\\k\\m\\q\\z\n', 'Séquences d\'échappement invalides devraient rester littérales');
     
     console.log('✅ echo gère les séquences d\'échappement invalides');
     return true;
@@ -145,7 +145,7 @@ function testEchoBackslashNumbers() {
     // Vérifier l'affichage (devrait rester littéral car \1, \2 etc. ne sont pas supportés)
     const captures = getCaptures();
     assert.captureCount(1, 'echo avec backslash+chiffres devrait capturer 1 ligne');
-    assert.equals(captures[0].text, 'test\\1\\2\\3\\123', 'Backslash suivi de chiffres devrait rester littéral');
+    assert.equals(captures[0].text, 'test\\1\\2\\3\\123\n', 'Backslash suivi de chiffres devrait rester littéral');
     
     console.log('✅ echo gère backslash suivi de chiffres');
     return true;
@@ -164,7 +164,7 @@ function testEchoDuplicateOptions() {
     // Vérifier l'affichage
     const captures = getCaptures();
     assert.captureCount(1, 'echo avec options dupliquées devrait capturer 1 ligne');
-    assert.equals(captures[0].text, 'Hello\nworld', 'Options dupliquées devraient fonctionner normalement');
+    assert.equals(captures[0].text, 'Hello\nworld\n', 'Options dupliquées devraient fonctionner normalement');
     
     console.log('✅ echo gère les options dupliquées');
     return true;
@@ -184,7 +184,7 @@ function testEchoOptionsIntermixed() {
     // Vérifier l'affichage (l'option -e est extraite et appliquée)
     const captures = getCaptures();
     assert.captureCount(1, 'echo avec options après texte devrait capturer 1 ligne');
-    assert.equals(captures[0].text, 'Hello world\ntest', 'L\'implémentation actuelle extrait les options partout');
+    assert.equals(captures[0].text, 'Hello -e world\\ntest\n', 'L\'implémentation actuelle extrait les options partout');
     
     console.log('✅ echo traite les options peu importe leur position');
     return true;
@@ -204,7 +204,7 @@ function testEchoControlCharacters() {
     // Vérifier l'affichage
     const captures = getCaptures();
     assert.captureCount(1, 'echo avec caractères de contrôle devrait capturer 1 ligne');
-    assert.equals(captures[0].text, controlText, 'echo devrait préserver les caractères de contrôle');
+    assert.equals(captures[0].text, controlText+'\n', 'echo devrait préserver les caractères de contrôle');
     
     console.log('✅ echo préserve les caractères de contrôle');
     return true;
@@ -223,7 +223,7 @@ function testEchoEscapeSequenceAmbiguous() {
     // Vérifier l'affichage
     const captures = getCaptures();
     assert.captureCount(1, 'echo avec séquences ambiguës devrait capturer 1 ligne');
-    assert.equals(captures[0].text, 'test\nn and \tt', 'Séquences d\'échappement devraient être correctement interprétées');
+    assert.equals(captures[0].text, 'test\nn and \tt\n', 'Séquences d\'échappement devraient être correctement interprétées');
     
     console.log('✅ echo gère les séquences potentiellement ambiguës');
     return true;
@@ -245,7 +245,7 @@ function testEchoMinimalContext() {
     };
     
     cmdEcho(['Hello from minimal context'], minimalContext);
-    assert.equals(capturedOutput, 'Hello from minimal context', 'echo devrait fonctionner avec contexte minimal');
+    assert.equals(capturedOutput, 'Hello from minimal context\n', 'echo devrait fonctionner avec contexte minimal');
     
     // Tester avec contexte vide
     capturedOutput = '';

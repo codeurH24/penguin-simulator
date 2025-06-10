@@ -73,7 +73,7 @@ export const assert = {
      */
     equals(actual, expected, message) {
         if (actual !== expected) {
-            throw new Error(`Assertion échouée: ${message}. Attendu: ${expected}, Reçu: ${actual}`);
+            throw new Error(`Assertion échouée: ${message}. Attendu: ${JSON.stringify(expected)}, Reçu: ${JSON.stringify(actual)}`);
         }
     },
     
