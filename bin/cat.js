@@ -13,25 +13,27 @@ export function cmdCat(args, context) {
 
     const { fileSystem, getCurrentPath } = context;
     const currentPath = getCurrentPath();
-    
+
     const term = context.terminal;
     // Utiliser addLine et showError du contexte si disponibles, sinon ceux par défaut
-    const outputFn = context?.addLine || (str => { term.write(`${str}\r\n`) });
+    let outputFn = context?.addLine || (str => {
+        term.write(str.replace(/\n/g, '\r\n'));
+    });
     const errorFn = context?.showError || (str => { term.write(`${str}\r\n`) });
-    
+
     // Si aucun argument, lire depuis stdin (simulation)
     if (args.length === 0) {
         errorFn('cat: lecture depuis stdin non supportée');
         errorFn('Usage: cat <fichier1> [fichier2] ...');
         return;
     }
-    
+
     // Gérer les options
     let showLineNumbers = false;
     let showNonPrintable = false;
     let showEnds = false;
     let fileArgs = [...args];
-    
+
     // Extraire les options
     fileArgs = fileArgs.filter(arg => {
         if (arg.startsWith('-')) {
@@ -42,61 +44,64 @@ export function cmdCat(args, context) {
         }
         return true;
     });
-    
+
     if (fileArgs.length === 0) {
         errorFn('cat: aucun fichier spécifié');
         return;
     }
-    
+
     let lineNumber = 1;
-    
+
     // Traiter chaque fichier
     fileArgs.forEach((fileName, fileIndex) => {
         const filePath = resolvePath(fileName, currentPath);
-        
+
         if (!fileSystem[filePath]) {
             errorFn(`cat: ${fileName}: Fichier introuvable`);
             return;
         }
-        
+
         const file = fileSystem[filePath];
         if (file.type !== 'file') {
             errorFn(`cat: ${fileName}: N'est pas un fichier`);
             return;
         }
-        
+
         // Mettre à jour la date d'accès
         file.accessed = new Date();
-        
+
         // Obtenir le contenu
         const content = file.content || '';
-        
+
+
         if (content) {
-            const lines = content.split('\n');
-            
-            // Traiter chaque ligne
-            lines.forEach((line, lineIndex) => {
-                let formattedLine = line;
-                
+            // Si aucune option spéciale, afficher le contenu brut
+            if (!showLineNumbers && !showEnds && !showNonPrintable) {
+                outputFn(content);
+            } else {
                 // Appliquer les options
+                let processedContent = content;
+
                 if (showNonPrintable) {
-                    formattedLine = formatNonPrintable(formattedLine);
+                    processedContent = formatNonPrintable(processedContent);
                 }
-                
-                if (showEnds && lineIndex < lines.length - 1) {
-                    formattedLine += '$';
-                }
-                
-                if (showLineNumbers) {
-                    // Numéroter seulement les lignes non-vides ou la dernière ligne si elle n'est pas vide
-                    if (line || lineIndex < lines.length - 1) {
-                        formattedLine = lineNumber.toString().padStart(6) + '  ' + formattedLine;
-                        lineNumber++;
+
+                if (showEnds) {
+                    processedContent = processedContent.replace(/\n/g, '$\n');
+                    if (processedContent.endsWith('$\n')) {
+                        processedContent = processedContent.slice(0, -2) + '$';
                     }
                 }
-                
-                outputFn(formattedLine);
-            });
+
+                if (showLineNumbers) {
+                    const lines = processedContent.split('\n');
+                    processedContent = lines.map((line, i) =>
+                        line ? `${(i + 1).toString().padStart(6)}  ${line}` : line
+                    ).join('\n');
+                }
+
+                outputFn(processedContent);
+            }
         } else {
             // Fichier vide - rien à afficher
         }

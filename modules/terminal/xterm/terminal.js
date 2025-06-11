@@ -13,31 +13,32 @@ import { cmdSu } from "../../../bin/su.js";
 import { cmdGroups, cmdId, cmdWhoami } from "../../../bin/user-info.js";
 import { History } from "./History.js";
 import { Autocompletion } from "./Autocompletion.js";
-import { 
+import {
     substituteVariablesInArgs,
-    handleVariableAssignment, 
-    isVariableAssignment 
+    handleVariableAssignment,
+    isVariableAssignment
 } from '../../../lib/bash-variables.js';
+import { executeWithRedirection, hasRedirection } from '../../../lib/bash-redirections.js';
 
 export class TerminalService {
 
-    constructor(context=null) {
+    constructor(context = null) {
 
         this.term = this.#_getTerminal();
         this.term.write('$ ');
         this.term.write('\x1b[4h');
-        
+
         this.context = null;
         this.setContext(context);
 
-        
+
         this.term.open(document.getElementById('terminal'));
         this.keyboard = new Keyboard(this.term);
         this.history = new History();
         this.autocompletion = new Autocompletion(this.term, context);
         this.term.focus();
 
-        
+
         this.username = "";
         this.hostname = "";
         this.currentPath = '';
@@ -49,7 +50,7 @@ export class TerminalService {
         this.keyboard.onKeyEnter(() => {
             this.history.add(this.inputStr);
             console.log('Send', this.inputStr);
-            this.cmd(this.inputStr);
+            this.processCommand(this.inputStr);
 
             this.inputStr = '';
             this.keyboard.updatePosition(this.inputStr);
@@ -65,12 +66,12 @@ export class TerminalService {
             const previous = this.history.getPrevious(this.inputStr);
             this.replaceCurrentInput(previous);
         })
-        
+
         this.keyboard.onKeyDown((data) => {
             const next = this.history.getNext(this.inputStr);
             this.replaceCurrentInput(next);
         })
-        
+
         this.keyboard.onKeyBackspace((position) => {
             this.charRemoveAt(position);
         })
@@ -88,7 +89,7 @@ export class TerminalService {
             this.inputStr,
             (text) => this.insertText(text)
         );
-        
+
         // TOUJOURS réafficher le prompt si des options ont été affichées
         if (optionsDisplayed) {
             this.showPrompt();
@@ -127,47 +128,61 @@ export class TerminalService {
         this.keyboard.updatePosition(this.inputStr);
     }
 
-    cmd(str) {
-
+    // Fonction principale - remplace l'ancienne cmd()
+    processCommand(str) {
         const trimmedCommand = str.trim();
         if (!trimmedCommand) {
             return;
         }
-
-        // Vérifier d'abord si c'est une assignation de variable
+    
         if (isVariableAssignment(str.trim())) {
             handleVariableAssignment(str.trim(), this.context);
-            return; // Sortir ici, pas de commande à exécuter
+            return;
         }
+    
+        const parsedCommand = this.parseCommand(trimmedCommand);
+        if (!parsedCommand) {
+            this.term.write('\r\n');
+            return; // Supprimé showPrompt()
+        }
+    
+        const { cmd, args, redirections } = parsedCommand;
+    
+        if (hasRedirection(redirections)) {
+            const commandExecutor = () => {
+                this.cmd(cmd, args);
+            };
+            executeWithRedirection(commandExecutor, redirections, this.context);
+        } else {
+            this.cmd(cmd, args);
+        }
+    
+        // this.term.write('\r\n');
+        // Supprimé showPrompt() - laissé dans onKeyEnter()
+    }
 
+    // Fonction de parsing
+    parseCommand(trimmedCommand) {
         this.context.terminal = this.term;
         const parts = parseCommandLine(trimmedCommand);
         if (parts.length === 0) {
-            this.term.write('\r\n');
-            this.showPrompt();
-            return;
+            return null;
         }
 
-        // if (parts.length === 1 && isVariableAssignment(parts[0])) {
-        //     handleVariableAssignment(parts[0], this.context);
-        //     this.term.write('\r\n');
-        //     this.showPrompt();
-        //     return;
-        // }
-
-
-        const { command: cmdParts } = parseRedirections(parts);
+        const { command: cmdParts, redirections } = parseRedirections(parts);
         if (cmdParts.length === 0) {
-            this.term.write('\r\n');
-            this.showPrompt();
-            return;
+            return null;
         }
 
-        const cmd = cmdParts[0];   // "cd"
-        let args = cmdParts.slice(1); // ["/home/my folder"]
-
+        const cmd = cmdParts[0];
+        let args = cmdParts.slice(1);
         args = substituteVariablesInArgs(args, this.context);
-        
+
+        return { cmd, args, redirections };
+    }
+
+    // cmd() garde la logique d'exécution
+    cmd(cmd, args) {
         if (cmd === 'cd') {
             cmdCd(args, this.context);
         }
@@ -183,23 +198,20 @@ export class TerminalService {
         else if (cmd === 'touch') {
             cmdTouch(args, this.context);
         }
-        else if (cmd === 'cat') {
-            cmdCat(args, this.context);
-        }
         else if (cmd === 'echo') {
             cmdEcho(args, this.context);
+        }
+        else if (cmd === 'cat') {
+            cmdCat(args, this.context);
         }
         else if (cmd === 'mv') {
             cmdMv(args, this.context);
         }
-        else if (cmd === 'passwd') {
-            cmdPasswd(args, this.context);
-        }
-        else if (cmd === 'passwd') {
-            cmdPasswd(args, this.context);
-        }
         else if (cmd === 'rm') {
             cmdRm(args, this.context);
+        }
+        else if (cmd === 'passwd') {
+            cmdPasswd(args, this.context);
         }
         else if (cmd === 'su') {
             cmdSu(args, this.context);
@@ -213,11 +225,8 @@ export class TerminalService {
         else if (cmd === 'groups') {
             cmdGroups(args, this.context);
         }
-        else if (cmd === 'clear') {
-            this.clear();
-        }
-        else if (cmd === 'export') {
-            cmdExport(args, this.context);
+        else {
+            this.context.addLine(`bash: ${cmd}: commande introuvable`);
         }
     }
 
@@ -225,7 +234,7 @@ export class TerminalService {
         console.log('TerminalSercice context', context);
         this.context = context;
         this.setUser(context);
-        
+
         if (this.userExist()) {
             this.clear();
             this.showPrompt();
@@ -238,7 +247,7 @@ export class TerminalService {
             const { currentUser } = this.context;
             this.username = currentUser?.username || 'root';
         }
-        
+
         this.term.write(`${this.username}@bash:${this.context.getCurrentPath()}${this.getShellSymbol()} `);
     }
 
@@ -254,16 +263,16 @@ export class TerminalService {
 
     setUser(context) {
         if (!this.userExist()) return;
-        const {currentUser} = context;
+        const { currentUser } = context;
         this.username = currentUser?.username;
         this.uid = currentUser?.uid;
         this.gid = currentUser?.gid;
     }
-    
+
     setPath(newPath) {
         this.path = newPath;
     }
-    
+
     setHostname(hostname) {
         this.hostname = hostname;
     }
@@ -292,5 +301,5 @@ export class TerminalService {
             cols: 80,
             rows: 24,
         });
-    }    
+    }
 }
