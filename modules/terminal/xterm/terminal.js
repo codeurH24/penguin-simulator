@@ -57,6 +57,16 @@ export class TerminalService {
             const next = this.history.getNext(this.inputStr);
             this.replaceCurrentInput(next);
         })
+        this.keyboard.onKeyBackspace((position) => {
+            this.charRemoveAt(position);
+        })
+    }
+
+    charRemoveAt(position) {
+        const strPrePosition = this.inputStr.slice(0, position);
+        const strPostPosition = this.inputStr.slice(position + 1)
+        this.inputStr = strPrePosition + strPostPosition;
+        console.log('this.inputStr', this.inputStr);
     }
 
     replaceCurrentInput(newInput) {

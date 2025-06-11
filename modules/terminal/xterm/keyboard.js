@@ -19,6 +19,7 @@ export class Keyboard {
                 this.term.write('\x1b[D\x1b[P');
                 this.position--;
                 this.positionMax--;
+                this.keyBackspace(data);
             }
             else if (data === '\x1b[C') { // Right arrow
                 if (this.position >= this.positionMax) return;
@@ -91,6 +92,18 @@ export class Keyboard {
 
     onKeyDown(fn) {
         this.eventKeyDown = fn;
+    }
+
+    keyBackspace() {
+        this.eventkeyBackspace(this.position, this.positionMax);
+    }
+
+    eventkeyBackspace() {
+        console.log('eventkeyBackspace');
+    }
+
+    onKeyBackspace(fn) {
+        this.eventkeyBackspace = fn;
     }
 
     setupEventHandlers() {
