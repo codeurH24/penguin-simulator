@@ -14,8 +14,8 @@ import { cmdGroups, cmdId, cmdWhoami } from "../../../bin/user-info.js";
 import { History } from "./History.js";
 import { Autocompletion } from "./Autocompletion.js";
 import { 
-    substituteVariablesInArgs, 
-    handleVariableAssignment,
+    substituteVariablesInArgs,
+    handleVariableAssignment, 
     isVariableAssignment 
 } from '../../../lib/bash-variables.js';
 
@@ -132,6 +132,12 @@ export class TerminalService {
         const trimmedCommand = str.trim();
         if (!trimmedCommand) {
             return;
+        }
+
+        // Vérifier d'abord si c'est une assignation de variable
+        if (isVariableAssignment(str.trim())) {
+            handleVariableAssignment(str.trim(), this.context);
+            return; // Sortir ici, pas de commande à exécuter
         }
 
         this.context.terminal = this.term;
