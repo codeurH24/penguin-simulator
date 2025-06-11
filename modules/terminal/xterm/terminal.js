@@ -192,6 +192,12 @@ export class TerminalService {
     }
 
     showPrompt() {
+        // S'assurer que le username est à jour
+        if (this.userExist()) {
+            const { currentUser } = this.context;
+            this.username = currentUser?.username || 'root';
+        }
+        
         this.term.write(`${this.username}@bash:${this.context.getCurrentPath()}${this.getShellSymbol()} `);
     }
 
