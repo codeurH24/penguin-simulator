@@ -50,10 +50,13 @@ function createDefaultContext() {
             '/etc': dirEntry
         },
         currentPath: '/root',
+        localVariables: {},
+        sessionVariables: {},
         variables: { OLDPWD: '/root' },
+        
         currentUser: getCurrentUser()
     };
-
+    
     return addContextMethods(context);
 }
 

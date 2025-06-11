@@ -9,6 +9,7 @@ import {
     DEFAULT_SUDOERS_CONTENT
 } from './defaults/index.js';
 import { createSkelStructure } from './defaults/skel-content.js';
+import { DEFAULT_ENVIRONMENT_CONTENT } from './defaults/system-files/auth/environment-content.js';
 
 /**
  * Initialise le système d'utilisateurs complet
@@ -44,6 +45,15 @@ export function initializeUserSystem(fileSystem, saveFileSystem) {
         fileSystem['/etc/sudoers'].owner = 'root';
         fileSystem['/etc/sudoers'].group = 'root';
         console.log('📝 Création de /etc/sudoers');
+    }
+
+    // Créer /etc/environment
+    if (!fileSystem['/etc/environment']) {
+        fileSystem['/etc/environment'] = createFileEntry(DEFAULT_ENVIRONMENT_CONTENT);
+        fileSystem['/etc/environment'].permissions = '-rw-r-----';
+        fileSystem['/etc/environment'].owner = 'root';
+        fileSystem['/etc/environment'].group = 'root';
+        console.log('📝 Création de /etc/environment');
     }
 
     // Créer la structure /etc/skel

@@ -59,7 +59,7 @@ export class Keyboard {
     }
 
     keyPressed(data) {
-        this.eventKeyPressed(data);
+        this.eventKeyPressed(data, this.position);
     }
 
     eventKeyPressed() {

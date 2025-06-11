@@ -36,6 +36,7 @@ export class TerminalService {
 
         this.keyboard.onKeyEnter(() => {
             this.history.add(this.inputStr);
+            console.log('Send', this.inputStr);
             this.cmd(this.inputStr);
 
             this.inputStr = '';
@@ -43,10 +44,10 @@ export class TerminalService {
             this.showPrompt();
         })
 
-        this.keyboard.onkeyPressed((data) => {
-            this.inputStr += data;
+        this.keyboard.onkeyPressed((data, position) => {
+            this.charAddAt(data, position)
             this.term.write(data);
-        })
+        });
 
         this.keyboard.onKeyUp((data) => {
             const previous = this.history.getPrevious(this.inputStr);
@@ -67,6 +68,11 @@ export class TerminalService {
         const strPostPosition = this.inputStr.slice(position + 1)
         this.inputStr = strPrePosition + strPostPosition;
         console.log('this.inputStr', this.inputStr);
+    }
+    charAddAt(char, position) {
+        const strPrePosition = this.inputStr.slice(0, position);
+        const strPostPosition = this.inputStr.slice(position);
+        this.inputStr = strPrePosition + char + strPostPosition;
     }
 
     replaceCurrentInput(newInput) {
