@@ -1,6 +1,6 @@
 import { Keyboard } from "./keyboard.js";
 import { parseCommandLine, parseRedirections } from '../../../lib/bash-parser.js';
-import { cmdPwd, cmdCd } from "../../../lib/bash-builtins.js";
+import { cmdPwd, cmdCd, cmdExport } from "../../../lib/bash-builtins.js";
 import { cmdLs } from "../../../bin/ls.js";
 import { cmdMkdir } from "../../../bin/mkdir.js";
 import { cmdTouch } from "../../../bin/touch.js";
@@ -215,6 +215,9 @@ export class TerminalService {
         }
         else if (cmd === 'clear') {
             this.clear();
+        }
+        else if (cmd === 'export') {
+            cmdExport(args, this.context);
         }
     }
 
