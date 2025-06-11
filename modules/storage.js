@@ -4,10 +4,10 @@
 let db = null;
 
 /**
- * Initialise la base de données IndexedDB
- * @returns {Promise<boolean>} - true si succès, false si échec
+ * Ouvre la connexion à la base de données IndexedDB
+ * @throws {Error} - Lance une erreur si impossible d'ouvrir la DB
  */
-export function initDB() {
+export function openDB() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open('TerminalDB', 1);
         
@@ -20,12 +20,11 @@ export function initDB() {
         
         request.onsuccess = function(e) {
             db = e.target.result;
-            resolve(true);
+            resolve();
         };
         
         request.onerror = function(e) {
-            console.error('Erreur IndexedDB:', e);
-            resolve(false);
+            reject(new Error(`Impossible d'ouvrir IndexedDB: ${e.target.error}`));
         };
     });
 }
@@ -37,7 +36,7 @@ export function initDB() {
  */
 export function saveData(data) {
     if (!db) {
-        console.warn('Base de données non initialisée');
+        console.warn('Base de données non ouverte');
         return Promise.resolve(false);
     }
     
@@ -65,7 +64,7 @@ export function saveData(data) {
  */
 export function loadData() {
     if (!db) {
-        console.warn('Base de données non initialisée');
+        console.warn('Base de données non ouverte');
         return Promise.resolve(null);
     }
     
@@ -91,7 +90,7 @@ export function loadData() {
 }
 
 /**
- * Vérifie si IndexedDB est disponible et initialisé
+ * Vérifie si IndexedDB est disponible et ouvert
  * @returns {boolean} - true si disponible
  */
 export function isDBReady() {

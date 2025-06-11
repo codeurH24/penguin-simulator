@@ -11,12 +11,14 @@ import { addLine, showError } from '../modules/terminal/terminal.js';
  */
 export function cmdLs(args, context) {
     
+    
     const { fileSystem, getCurrentPath } = context;
     const currentPath = getCurrentPath();
     
+    const term = context.terminal;
     // Utiliser les fonctions du contexte si disponibles, sinon celles par défaut
-    const outputFn = context?.addLine || addLine;
-    const errorFn = context?.showError || showError;
+    const outputFn = context?.addLine || (str => { term.write(`${str}\r\n`) });
+    const errorFn = context?.showError || (str => { term.write(`${str}\r\n`) });
     
     // Gérer les options
     let longFormat = false;

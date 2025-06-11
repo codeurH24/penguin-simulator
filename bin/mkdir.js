@@ -2,7 +2,7 @@
 // Équivalent de /bin/mkdir sous Debian
 
 import { resolvePath, getDirname } from '../modules/filesystem.js';
-import { showError, showSuccess } from '../modules/terminal/terminal.js';
+import { addLine, showError } from '../modules/terminal/terminal.js';
 
 /**
  * Commande mkdir - Crée des répertoires
@@ -14,9 +14,10 @@ export function cmdMkdir(args, context) {
     const { fileSystem, getCurrentPath, saveFileSystem } = context;
     const currentPath = getCurrentPath();
     
+    const term = context.terminal;
     // Utiliser les fonctions du contexte si disponibles, sinon celles par défaut
-    const errorFn = context?.showError || showError;
-    const successFn = context?.showSuccess || showSuccess;
+    const errorFn = context?.showError || (str => { term.write(`${str}\r\n`) });
+    const successFn = context?.showSuccess || (str => { term.write(`${str}\r\n`) });
     
     if (args.length === 0) {
         errorFn('mkdir: nom de dossier manquant');
