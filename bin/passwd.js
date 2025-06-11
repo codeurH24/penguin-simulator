@@ -42,7 +42,10 @@ function checkIfUserHasValidPassword(username, fileSystem) {
  * @param {Object} context - Contexte (fileSystem, saveFileSystem)
  */
 export function cmdPasswd(args, context) {
-    const { fileSystem, saveFileSystem } = context;
+    const { fileSystem, saveFileSystem, terminal } = context;
+
+    const term = terminal;
+    const showError = (str) => { term.write(`${str}\r\n`) }
     
     const currentUser = getCurrentUser();
     let targetUsername = currentUser.username; // Par défaut, changer son propre mot de passe
@@ -92,7 +95,7 @@ export function cmdPasswd(args, context) {
     
     // Afficher le statut si demandé
     if (showStatus) {
-        showPasswordStatus(targetUsername, fileSystem);
+        showPasswordStatus(targetUsername, fileSystem, term);
         return;
     }
     
@@ -139,7 +142,7 @@ export function cmdPasswd(args, context) {
                 requireOldPassword, 
                 verifyOldPasswordCallback,
                 (oldPassword, newPassword) => {
-                    handlePasswordChangeSuccess(targetUsername, oldPassword, newPassword, fileSystem, saveFileSystem);
+                    handlePasswordChangeSuccess(targetUsername, oldPassword, newPassword, fileSystem, saveFileSystem, term);
                 },
                 accountHasValidPassword
             );
@@ -158,8 +161,14 @@ export function cmdPasswd(args, context) {
  * @param {Object} fileSystem - Système de fichiers
  * @param {Function} saveFileSystem - Fonction de sauvegarde
  */
-function handlePasswordChangeSuccess(targetUsername, oldPassword, newPassword, fileSystem, saveFileSystem) {
+function handlePasswordChangeSuccess(targetUsername, oldPassword, newPassword, fileSystem, saveFileSystem, term) {
     try {
+
+        const showError = (str) => { term.write(`${str}\r\n`) }
+        const addLine = (str) => { term.write(`${str}\r\n`) }
+        const showSuccess = (str) => { term.write(`${str}\r\n`) }
+
+
         // Validation du nouveau mot de passe
         if (newPassword.length < 3) {
             showError('passwd: Mot de passe trop court (minimum 3 caractères)');
@@ -233,7 +242,13 @@ function calculateHash(password) {
  * @param {string} username - Nom d'utilisateur
  * @param {Object} fileSystem - Système de fichiers
  */
-function showPasswordStatus(username, fileSystem) {
+function showPasswordStatus(username, fileSystem, term) {
+
+    const showError = (str) => { term.write(`${str}\r\n`) }
+    const addLine = (str) => { term.write(`${str}\r\n`) }
+    const showSuccess = (str) => { term.write(`${str}\r\n`) }
+
+
     const shadowFile = fileSystem['/etc/shadow'];
     if (!shadowFile || shadowFile.type !== 'file') {
         showError('passwd: impossible de lire /etc/shadow');

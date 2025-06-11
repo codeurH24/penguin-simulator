@@ -14,9 +14,10 @@ export function cmdMv(args, context) {
     const { fileSystem, getCurrentPath, saveFileSystem } = context;
     const currentPath = getCurrentPath();
     
+    const term = context.terminal;
     // Utiliser les fonctions du contexte si disponibles, sinon celles par défaut
-    const errorFn = context?.showError || showError;
-    const successFn = context?.showSuccess || showSuccess;
+    const errorFn = context?.showError || (str => { term.write(`${str}\r\n`) });
+    const successFn = context?.showSuccess || (str => { term.write(`${str}\r\n`) });
     
     if (args.length < 2) {
         errorFn('mv: source et destination requises');

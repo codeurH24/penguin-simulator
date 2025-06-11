@@ -1,6 +1,8 @@
 export class Keyboard {
     constructor(term) {
         this.term = term;
+        this.position = 0;
+        this.positionMax = 0;
 
         this.term.onData(data => {
             const code = data.charCodeAt(0);
@@ -9,8 +11,37 @@ export class Keyboard {
             }
             else if (code >= 32 && code <= 126) { // Regular chars
                 this.keyPressed(data);
+                this.position++;
+                this.positionMax++;
+            }
+            else if (code === 127 || code === 8) { // Backspace
+                if (this.position <= 0) return;
+                this.term.write('\x1b[D\x1b[P');
+                this.position--;
+                this.positionMax--;
+            }
+            else if (data === '\x1b[C') { // Right arrow
+                if (this.position >= this.positionMax) return;
+                this.term.write(data);
+                this.position++;
+            }
+            else if (data === '\x1b[D') { // Left arrow
+                if (this.position <= 0) return; 
+                this.term.write(data);
+                this.position--;
+            }
+            else if (data === '\x1b[A') { // Up arrow
+                this.keyUp();
+            }
+            else if (data === '\x1b[B') { // Down arrow
+                this.keyDown();
             }
         });
+    }
+
+    updatePosition(str) {
+        this.position = str.length;
+        this.positionMax = str.length
     }
 
     keyEnter() {
@@ -36,6 +67,30 @@ export class Keyboard {
 
     onkeyPressed(fn) {
         this.eventKeyPressed = fn;
+    }
+
+    keyUp() {
+        this.eventKeyUp();
+    }
+
+    eventKeyUp() {
+        console.log('eventKeyUp');
+    }
+
+    onKeyUp(fn) {
+        this.eventKeyUp = fn;
+    }
+
+    keyDown() {
+        this.eventKeyDown();
+    }
+
+    eventKeyDown() {
+        console.log('eventKeyDown');
+    }
+
+    onKeyDown(fn) {
+        this.eventKeyDown = fn;
     }
 
     setupEventHandlers() {

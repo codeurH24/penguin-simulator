@@ -2,7 +2,6 @@
 // Équivalent de /bin/su sous Debian
 
 import { switchUser, getCurrentUser, getUserInfo } from '../modules/users/user.service.js';
-import { showError } from '../modules/terminal/terminal.js';
 
 /**
  * Commande su - Change d'utilisateur (SILENCIEUX comme le vrai bash)
@@ -11,6 +10,10 @@ import { showError } from '../modules/terminal/terminal.js';
  */
 export function cmdSu(args, context) {
     const { fileSystem, setCurrentPath, saveFileSystem } = context;
+    
+    const term = context.terminal;
+    // Utiliser les fonctions du contexte si disponibles, sinon celles par défaut
+    const showError = context?.showError || (str => { term.write(`${str}\r\n`) });
     
     // Par défaut, su sans argument = su root
     let targetUsername = args.length > 0 ? args[0] : 'root';

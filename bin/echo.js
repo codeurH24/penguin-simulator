@@ -2,7 +2,14 @@
 import { addLine, write, flushLine, showError } from '../modules/terminal/terminal.js';
     
 export function cmdEcho(args, context) {
-    let outputFn = context?.addLine || addLine;
+    const term = context.terminal;
+    let outputFn = context?.addLine || (str => { 
+         
+        term.write(`${str}`)
+        if (str.endsWith('\n')) {
+            term.write('\r\x1b[K');
+        }
+    });
     
     // Options
     let noNewline = false;

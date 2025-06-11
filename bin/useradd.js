@@ -13,8 +13,8 @@ export function cmdUseradd(args, context) {
     const { fileSystem, saveFileSystem } = context;
     
     // Utiliser les fonctions du contexte si disponibles, sinon celles par défaut
-    const errorFn = context?.showError || showError;
-    const successFn = context?.showSuccess || showSuccess;
+    const errorFn = context?.showError || ((str) => { term.write(`${str}\r\n`) });
+    const successFn = context?.showSuccess || ((str) => { term.write(`${str}\r\n`) });
     
     // Vérifier les permissions (seul root peut ajouter des utilisateurs)
     if (!isRoot()) {

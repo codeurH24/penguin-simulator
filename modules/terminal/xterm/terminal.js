@@ -3,6 +3,15 @@ import { parseCommandLine, parseRedirections } from '../../../lib/bash-parser.js
 import { cmdPwd, cmdCd } from "../../../lib/bash-builtins.js";
 import { cmdLs } from "../../../bin/ls.js";
 import { cmdMkdir } from "../../../bin/mkdir.js";
+import { cmdTouch } from "../../../bin/touch.js";
+import { cmdEcho } from "../../../bin/echo.js";
+import { cmdCat } from "../../../bin/cat.js";
+import { cmdMv } from "../../../bin/mv.js";
+import { cmdPasswd } from "../../../bin/passwd.js";
+import { cmdRm } from "../../../bin/rm.js";
+import { cmdSu } from "../../../bin/su.js";
+import { cmdGroups, cmdId, cmdWhoami } from "../../../bin/user-info.js";
+import { History } from "./History.js";
 
 export class TerminalService {
 
@@ -10,9 +19,11 @@ export class TerminalService {
         this.term = this.#_getTerminal();
         this.term.open(document.getElementById('terminal'));
         this.keyboard = new Keyboard(this.term);
+        this.history = new History();
         this.term.focus();
 
         this.term.write('$ ');
+        this.term.write('\x1b[4h');
         
         this.context = context;
         this.username = "";
@@ -24,9 +35,11 @@ export class TerminalService {
         this.inputStr = '';
 
         this.keyboard.onKeyEnter(() => {
+            this.history.add(this.inputStr);
             this.cmd(this.inputStr);
 
             this.inputStr = '';
+            this.keyboard.updatePosition(this.inputStr);
             this.showPrompt();
         })
 
@@ -34,6 +47,25 @@ export class TerminalService {
             this.inputStr += data;
             this.term.write(data);
         })
+
+        this.keyboard.onKeyUp((data) => {
+            const previous = this.history.getPrevious(this.inputStr);
+            this.replaceCurrentInput(previous);
+        })
+        
+        this.keyboard.onKeyDown((data) => {
+            const next = this.history.getNext(this.inputStr);
+            this.replaceCurrentInput(next);
+        })
+    }
+
+    replaceCurrentInput(newInput) {
+        // Efface la ligne actuelle
+        this.term.write('\r\x1b[K');
+        this.showPrompt();
+        this.term.write(newInput);
+        this.inputStr = newInput;
+        this.keyboard.updatePosition(this.inputStr);
     }
 
     cmd(str) {
@@ -55,6 +87,42 @@ export class TerminalService {
         }
         else if (cmd === 'mkdir') {
             cmdMkdir(args, this.context);
+        }
+        else if (cmd === 'touch') {
+            cmdTouch(args, this.context);
+        }
+        else if (cmd === 'cat') {
+            cmdCat(args, this.context);
+        }
+        else if (cmd === 'echo') {
+            cmdEcho(args, this.context);
+        }
+        else if (cmd === 'mv') {
+            cmdMv(args, this.context);
+        }
+        else if (cmd === 'passwd') {
+            cmdPasswd(args, this.context);
+        }
+        else if (cmd === 'passwd') {
+            cmdPasswd(args, this.context);
+        }
+        else if (cmd === 'rm') {
+            cmdRm(args, this.context);
+        }
+        else if (cmd === 'su') {
+            cmdSu(args, this.context);
+        }
+        else if (cmd === 'whoami') {
+            cmdWhoami(args, this.context);
+        }
+        else if (cmd === 'id') {
+            cmdId(args, this.context);
+        }
+        else if (cmd === 'groups') {
+            cmdGroups(args, this.context);
+        }
+        else if (cmd === 'clear') {
+            this.clear();
         }
     }
 
@@ -121,7 +189,7 @@ export class TerminalService {
             },
             cursorBlink: true,
             cols: 80,
-            rows: 24
+            rows: 24,
         });
     }    
 }

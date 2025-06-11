@@ -10,8 +10,10 @@ import { showError, showSuccess } from '../modules/terminal/terminal.js';
  * @param {Object} context - Contexte (fileSystem, saveFileSystem)
  */
 export function cmdUserdel(args, context) {
-    const { fileSystem, saveFileSystem } = context;
-    
+    const { fileSystem, saveFileSystem, terminal } = context;
+    const term = terminal;
+    const showError = (str) => { term.write(`${str}\r\n`) };
+
     // Vérifier les permissions (seul root peut supprimer des utilisateurs)
     if (!isRoot()) {
         showError('userdel: Seul root peut supprimer des utilisateurs du système');

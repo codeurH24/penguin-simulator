@@ -10,7 +10,7 @@ import { addLine, showError } from '../modules/terminal/terminal.js';
  * @param {Object} context - Contexte
  */
 export function cmdWhoami(args, context) {
-    const outputFn = context?.addLine || addLine;
+    const outputFn = context?.addLine || ((str) => { term.write(`${str}\r\n`) });
     
     if (args.length > 0) {
         showError('whoami: trop d\'arguments');
@@ -29,7 +29,7 @@ export function cmdWhoami(args, context) {
  */
 export function cmdId(args, context) {
     const { fileSystem } = context;
-    const outputFn = context?.addLine || addLine;
+    const outputFn = context?.addLine || ((str) => { term.write(`${str}\r\n`) });
     
     const currentUser = getCurrentUser();
     let targetUsername = currentUser.username;
