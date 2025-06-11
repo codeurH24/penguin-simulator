@@ -13,6 +13,11 @@ import { cmdSu } from "../../../bin/su.js";
 import { cmdGroups, cmdId, cmdWhoami } from "../../../bin/user-info.js";
 import { History } from "./History.js";
 import { Autocompletion } from "./Autocompletion.js";
+import { 
+    substituteVariablesInArgs, 
+    handleVariableAssignment,
+    isVariableAssignment 
+} from '../../../lib/bash-variables.js';
 
 export class TerminalService {
 
@@ -123,12 +128,39 @@ export class TerminalService {
     }
 
     cmd(str) {
+
+        const trimmedCommand = str.trim();
+        if (!trimmedCommand) {
+            return;
+        }
+
         this.context.terminal = this.term;
-        const parts = parseCommandLine(str);
+        const parts = parseCommandLine(trimmedCommand);
+        if (parts.length === 0) {
+            this.term.write('\r\n');
+            this.showPrompt();
+            return;
+        }
+
+        // if (parts.length === 1 && isVariableAssignment(parts[0])) {
+        //     handleVariableAssignment(parts[0], this.context);
+        //     this.term.write('\r\n');
+        //     this.showPrompt();
+        //     return;
+        // }
+
+
         const { command: cmdParts } = parseRedirections(parts);
+        if (cmdParts.length === 0) {
+            this.term.write('\r\n');
+            this.showPrompt();
+            return;
+        }
 
         const cmd = cmdParts[0];   // "cd"
-        const args = cmdParts.slice(1); // ["/home/my folder"]
+        let args = cmdParts.slice(1); // ["/home/my folder"]
+
+        args = substituteVariablesInArgs(args, this.context);
         
         if (cmd === 'cd') {
             cmdCd(args, this.context);
