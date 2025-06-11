@@ -12,20 +12,27 @@ import { cmdRm } from "../../../bin/rm.js";
 import { cmdSu } from "../../../bin/su.js";
 import { cmdGroups, cmdId, cmdWhoami } from "../../../bin/user-info.js";
 import { History } from "./History.js";
+import { Autocompletion } from "./Autocompletion.js";
 
 export class TerminalService {
 
     constructor(context=null) {
-        this.term = this.#_getTerminal();
-        this.term.open(document.getElementById('terminal'));
-        this.keyboard = new Keyboard(this.term);
-        this.history = new History();
-        this.term.focus();
 
+        this.term = this.#_getTerminal();
         this.term.write('$ ');
         this.term.write('\x1b[4h');
         
-        this.context = context;
+        this.context = null;
+        this.setContext(context);
+
+        
+        this.term.open(document.getElementById('terminal'));
+        this.keyboard = new Keyboard(this.term);
+        this.history = new History();
+        this.autocompletion = new Autocompletion(this.term, context);
+        this.term.focus();
+
+        
         this.username = "";
         this.hostname = "";
         this.currentPath = '';
@@ -58,9 +65,40 @@ export class TerminalService {
             const next = this.history.getNext(this.inputStr);
             this.replaceCurrentInput(next);
         })
+        
         this.keyboard.onKeyBackspace((position) => {
             this.charRemoveAt(position);
         })
+
+        this.keyboard.onKeyTab(() => {
+            this.handleTabCompletion();
+        })
+    }
+
+    /**
+     * Gestion de l'auto-complétion avec la nouvelle classe
+     */
+    async handleTabCompletion() {
+        const optionsDisplayed = await this.autocompletion.handleTabCompletion(
+            this.inputStr,
+            (text) => this.insertText(text)
+        );
+        
+        // TOUJOURS réafficher le prompt si des options ont été affichées
+        if (optionsDisplayed) {
+            this.showPrompt();
+            this.term.write(this.inputStr);
+        }
+    }
+
+    /**
+     * Insère du texte à la fin de la ligne de commande
+     * @param {string} text - Texte à insérer
+     */
+    insertText(text) {
+        this.inputStr += text;
+        this.term.write(text);
+        this.keyboard.updatePosition(this.inputStr);
     }
 
     charRemoveAt(position) {
@@ -194,8 +232,8 @@ export class TerminalService {
 
     #_getTerminal() {
         return new Terminal({
-            fontSize: 24,
-            fontFamily: 'Courier New, monospace',
+            fontSize: 22,
+            fontFamily: 'Lucida Console, Monaco, Courier New,monospace',
             theme: {
                 background: '#1e1e1e',
                 foreground: '#ffffff',

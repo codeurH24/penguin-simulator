@@ -57,7 +57,6 @@ export function cmdMkdir(args, context) {
                         fileSystem[currentDir] = createDirectoryEntry();
                     }
                 }
-                successFn(`Dossier '${dirName}' créé (avec parents)`);
             } else {
                 // Vérifier que le parent existe
                 const parentPath = getDirname(fullPath);
@@ -66,7 +65,6 @@ export function cmdMkdir(args, context) {
                     return;
                 }
                 fileSystem[fullPath] = createDirectoryEntry();
-                successFn(`Dossier '${dirName}' créé`);
             }
             saveFileSystem();
         }

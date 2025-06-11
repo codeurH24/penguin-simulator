@@ -75,18 +75,6 @@ export function cmdMv(args, context) {
             delete fileSystem[childPath];
         });
     }
-
-    // Message de succès avec le nom de base pour plus de clarté
-    const sourceName = getBasename(sourcePath);
-    const destName = getBasename(destPath);
-    
-    if (sourceName === destName) {
-        // Déplacement vers un autre dossier
-        successFn(`'${args[0]}' déplacé vers '${args[1]}'`);
-    } else {
-        // Renommage
-        successFn(`'${args[0]}' déplacé vers '${destName}'`);
-    }
     
     saveFileSystem();
 }

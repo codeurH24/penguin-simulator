@@ -12,8 +12,7 @@ async function initApp() {
         if (!context.variables.HOME) envAddHome(context);
         envLoadFromEnvironment(context)
 
-        const terminal = new TerminalService();
-        terminal.setContext(context);
+        new TerminalService(context);
 
     } catch (error) {
         console.error('Erreur:', error.message);

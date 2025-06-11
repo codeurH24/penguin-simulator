@@ -37,6 +37,9 @@ export class Keyboard {
             else if (data === '\x1b[B') { // Down arrow
                 this.keyDown();
             }
+            else if (code === 9) { // Tab
+                this.keyTab();
+            }
         });
     }
 
@@ -104,6 +107,18 @@ export class Keyboard {
 
     onKeyBackspace(fn) {
         this.eventkeyBackspace = fn;
+    }
+
+    keyTab() {
+        this.eventKeyTab();
+    }
+    
+    eventKeyTab() {
+        console.log('eventKeyTab');
+    }
+    
+    onKeyTab(fn) {
+        this.eventKeyTab = fn;
     }
 
     setupEventHandlers() {
