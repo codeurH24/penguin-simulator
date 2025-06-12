@@ -2,7 +2,6 @@
 // Équivalents de whoami, id, groups sous Debian
 
 import { getCurrentUser, parseGroupFile } from '../modules/users/user.service.js';
-import { addLine, showError } from '../modules/terminal/terminal.js';
 
 /**
  * Commande whoami - Affiche le nom de l'utilisateur courant
@@ -11,6 +10,7 @@ import { addLine, showError } from '../modules/terminal/terminal.js';
  */
 export function cmdWhoami(args, context) {
     const outputFn = context?.addLine || ((str) => { term.write(`${str}\r\n`) });
+    const showError = context?.addLine || ((str) => { term.write(`${str}\r\n`) });
     
     if (args.length > 0) {
         showError('whoami: trop d\'arguments');
@@ -30,6 +30,7 @@ export function cmdWhoami(args, context) {
 export function cmdId(args, context) {
     const { fileSystem } = context;
     const outputFn = context?.addLine || ((str) => { term.write(`${str}\r\n`) });
+    const showError = context?.addLine || ((str) => { term.write(`${str}\r\n`) });
     
     const currentUser = getCurrentUser();
     let targetUsername = currentUser.username;
@@ -98,7 +99,8 @@ export function cmdId(args, context) {
  */
 export function cmdGroups(args, context) {
     const { fileSystem } = context;
-    const outputFn = context?.addLine || addLine;
+    const outputFn = context?.addLine || ((str) => { term.write(`${str}\r\n`) });
+    const showError = context?.addLine || ((str) => { term.write(`${str}\r\n`) });
     
     const currentUser = getCurrentUser();
     const targetUsername = args.length > 0 ? args[0] : currentUser.username;

@@ -19,6 +19,7 @@ import {
     isVariableAssignment
 } from '../../../lib/bash-variables.js';
 import { executeWithRedirection, hasRedirection } from '../../../lib/bash-redirections.js';
+import { cmdUseradd } from "../../../bin/useradd.js";
 
 export class TerminalService {
 
@@ -111,7 +112,6 @@ export class TerminalService {
         const strPrePosition = this.inputStr.slice(0, position);
         const strPostPosition = this.inputStr.slice(position + 1)
         this.inputStr = strPrePosition + strPostPosition;
-        console.log('this.inputStr', this.inputStr);
     }
     charAddAt(char, position) {
         const strPrePosition = this.inputStr.slice(0, position);
@@ -225,8 +225,14 @@ export class TerminalService {
         else if (cmd === 'groups') {
             cmdGroups(args, this.context);
         }
+        else if (cmd === 'clear') {
+            this.clear();
+        }
+        else if (cmd === 'useradd') {
+            cmdUseradd(args, this.context);
+        }
         else {
-            this.context.addLine(`bash: ${cmd}: commande introuvable`);
+            this.term.write(`bash: ${cmd}: commande introuvable\r\n`);
         }
     }
 

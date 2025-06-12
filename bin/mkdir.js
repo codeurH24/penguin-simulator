@@ -2,7 +2,6 @@
 // Équivalent de /bin/mkdir sous Debian
 
 import { resolvePath, getDirname } from '../modules/filesystem.js';
-import { addLine, showError } from '../modules/terminal/terminal.js';
 
 /**
  * Commande mkdir - Crée des répertoires

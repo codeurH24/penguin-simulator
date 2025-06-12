@@ -2,7 +2,6 @@
 // Équivalent de /usr/sbin/userdel sous Debian
 
 import { removeUser, isRoot, getCurrentUser } from '../modules/users/user.service.js';
-import { showError, showSuccess } from '../modules/terminal/terminal.js';
 
 /**
  * Commande userdel - Supprime un utilisateur du système
@@ -13,6 +12,7 @@ export function cmdUserdel(args, context) {
     const { fileSystem, saveFileSystem, terminal } = context;
     const term = terminal;
     const showError = (str) => { term.write(`${str}\r\n`) };
+    const showSuccess = (str) => { term.write(`${str}\r\n`) };
 
     // Vérifier les permissions (seul root peut supprimer des utilisateurs)
     if (!isRoot()) {

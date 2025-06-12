@@ -2,7 +2,6 @@
 // Équivalent de /bin/rm sous Debian avec globbing
 
 import { resolvePath } from '../modules/filesystem.js';
-import { showError, showSuccess } from '../modules/terminal/terminal.js';
 
 /**
  * Expanse un pattern en liste de fichiers matchants (globbing)

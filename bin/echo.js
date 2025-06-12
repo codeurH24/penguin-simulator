@@ -1,6 +1,4 @@
-// Remplacez cmdEcho dans bin/echo.js par :
-import { addLine, write, flushLine, showError } from '../modules/terminal/terminal.js';
-    
+
 export function cmdEcho(args, context) {
     const term = context.terminal;
     let outputFn = context?.addLine || (str => { 
