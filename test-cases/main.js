@@ -35,7 +35,7 @@ async function runAllTests() {
             return false;
         }
         
-        stages(suites);
+        await stages(suites);
         
     } catch (error) {
         console.error('\n💥 ERREUR FATALE lors de l\'exécution des tests:', error.message);

@@ -1,8 +1,9 @@
 import { TerminalService } from './modules/terminal/xterm/terminal.js';
 import { createAndSaveContext, getContextFromDB } from './core/basic-context.js';
 import { envAddHome, envLoadFromEnvironment } from './modules/install-system.js';
+import { cmdPasswd } from './bin/passwd.js';
 
-async function initApp() {
+export async function initApp() {
     try {
         // Récupérer ou créer le contexte
         let context = await getContextFromDB();
@@ -13,7 +14,8 @@ async function initApp() {
         if (!context.variables.HOME) envAddHome(context);
         envLoadFromEnvironment(context)
 
-        new TerminalService(context);
+        const terminal = new TerminalService(context);
+        return terminal;
 
     } catch (error) {
         console.error('Erreur:', error.message);

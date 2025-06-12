@@ -144,3 +144,81 @@ export function createTest(name, fn) {
 export function testGroup(...tests) {
     return tests;
 }
+
+
+/**
+ * Exécute un test individuel ASYNC avec gestion d'erreurs
+ * @param {string} name - Nom du test
+ * @param {Function} testFn - Fonction de test async à exécuter
+ * @returns {Promise<Object>} - {name, success, error?, duration}
+ */
+async function runSingleTestAsync(name, testFn) {
+    const startTime = performance.now();
+    
+    try {
+        const result = await testFn(); // SEULE DIFFÉRENCE: await ici
+        const endTime = performance.now();
+        const duration = Math.round(endTime - startTime);
+        
+        if (result === true) {
+            return { name, success: true, duration };
+        } else if (result === false) {
+            return { name, success: false, duration, error: 'Test retourné false' };
+        } else {
+            return { name, success: true, duration };
+        }
+    } catch (error) {
+        const endTime = performance.now();
+        const duration = Math.round(endTime - startTime);
+        
+        return { 
+            name, 
+            success: false, 
+            duration,
+            error: error.message || 'Erreur inconnue'
+        };
+    }
+}
+
+/**
+ * Exécute une suite de tests ASYNC
+ * @param {string} suiteName - Nom de la suite
+ * @param {Array} tests - Tableau de {name, fn}
+ * @returns {Promise<Object>} - Résultats de la suite
+ */
+export async function runTestSuiteAsync(suiteName, tests) {
+    console.log(`\n🧪 === ${suiteName} ===`);
+    
+    const results = [];
+    const startTime = performance.now();
+    
+    // SEULE DIFFÉRENCE: boucle avec await
+    for (const test of tests) {
+        console.log(`\n▶️ ${test.name}`);
+        const result = await runSingleTestAsync(test.name, test.fn);
+        results.push(result);
+        
+        const status = result.success ? '✅' : '❌';
+        const duration = `(${result.duration}ms)`;
+        console.log(`${status} ${test.name} ${duration}`);
+        
+        if (!result.success && result.error) {
+            console.log(`   💥 ${result.error}`);
+        }
+    }
+    
+    const endTime = performance.now();
+    const totalDuration = Math.round(endTime - startTime);
+    const passed = results.filter(r => r.success).length;
+    
+    console.log(`\n📊 ${suiteName}: ${passed}/${results.length} tests réussis (${totalDuration}ms)`);
+    
+    return {
+        name: suiteName,
+        results,
+        passed,
+        total: results.length,
+        duration: totalDuration,
+        success: passed === results.length
+    };
+}

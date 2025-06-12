@@ -152,7 +152,7 @@ export function cmdPasswd(args, context) {
                 null;
 
             // Démarrer l'interaction pour saisir les mots de passe
-            startPasswordInput(
+            return startPasswordInput(
                 term,
                 targetUsername,
                 requireOldPassword,
@@ -417,4 +417,6 @@ function startPasswordInput(term, targetUsername, requireOldPassword, verifyOldP
         step = 1;
         enterPasswordMode(`Nouveau mot de passe pour ${targetUsername}: `);
     }
+
+    return { callback: handlePasswordStep, cancelCallback: exitPasswordMode};
 }

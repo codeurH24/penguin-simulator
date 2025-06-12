@@ -50,17 +50,7 @@ export class TerminalService {
         this.inputStr = '';
 
         this.keyboard.onKeyEnter(() => {
-            this.history.add(this.inputStr);
-            console.log('Send', this.inputStr);
-            this.processCommand(this.inputStr);
-
-            this.inputStr = '';
-            this.keyboard.updatePosition(this.inputStr);
-
-            // NE PAS afficher le prompt si on est en mode password
-            if (!this.term.passwordMode) {
-                this.showPrompt();
-            }
+            this.sendCommand();
         })
 
         this.keyboard.onkeyPressed((data, position) => {
@@ -85,6 +75,49 @@ export class TerminalService {
         this.keyboard.onKeyTab(() => {
             this.handleTabCompletion();
         })
+    }
+
+    getContext() {
+        this.context.terminal = this.term;
+        return this.context;
+    }
+
+    sendCommand(command=null) {
+
+        if (command !== null) this.inputStr = command;
+
+        this.history.add(this.inputStr);
+        console.log('Send', this.inputStr);
+
+        
+        this.captureOutput();
+        this.processCommand(this.inputStr);
+
+        
+
+        this.inputStr = '';
+        this.keyboard.updatePosition(this.inputStr);
+
+        // NE PAS afficher le prompt si on est en mode password
+        if (!this.term.passwordMode) {
+            this.showPrompt();
+        }
+        
+        return this.commandOutput;
+    }
+
+    captureOutput() {
+        this.commandOutput = '';
+        this.originalWrite = this.term.write;
+        this.term.write = (data) => {
+            this.commandOutput += data;
+            return this.originalWrite.call(this.term, data);
+        };
+    }
+
+    getCapture() {
+        this.term.write = this.originalWrite;
+        return this.commandOutput;
     }
 
     /**
