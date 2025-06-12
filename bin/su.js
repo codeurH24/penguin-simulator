@@ -10,6 +10,8 @@ import { switchUser, getCurrentUser, getUserInfo } from '../modules/users/user.s
  */
 export function cmdSu(args, context) {
     const { fileSystem, setCurrentPath, saveFileSystem } = context;
+
+    console.log('debug cmdSu context', context);
     
     const term = context.terminal;
     // Utiliser les fonctions du contexte si disponibles, sinon celles par défaut
@@ -43,7 +45,7 @@ export function cmdSu(args, context) {
         i++;
     }
     
-    const currentUser = getCurrentUser();
+    const currentUser = context.currentUser;
     
     // Vérifier si l'utilisateur cible existe
     const targetUser = getUserInfo(targetUsername, fileSystem);
@@ -59,7 +61,7 @@ export function cmdSu(args, context) {
     try {
         // Changer d'utilisateur
         const newUser = switchUser(targetUsername, fileSystem);
-        
+        context.currentUser = newUser;
         // Si c'est un login shell ou si on change vers un autre utilisateur,
         // changer le répertoire courant vers le home
         if (loginShell || targetUsername !== currentUser.username) {
@@ -81,7 +83,7 @@ export function cmdSu(args, context) {
             // Pour l'instant, on simule juste
         }
         
-        saveFileSystem();
+        // saveFileSystem();
         
         // PAS DE MESSAGES - su est silencieux quand ça réussit !
         

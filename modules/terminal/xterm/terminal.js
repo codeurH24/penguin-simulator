@@ -248,13 +248,18 @@ export class TerminalService {
     }
 
     showPrompt() {
+
+        console.log('debug user', this.context.currentUser);
         // S'assurer que le username est à jour
         if (this.userExist()) {
             const { currentUser } = this.context;
             this.username = currentUser?.username || 'root';
         }
+        const username = this.context?.currentUser?.username || 'root';
+        const currentPath = this.context?.getCurrentPath() || '/';
+        this.uid = this.context?.currentUser?.uid || 0;
 
-        this.term.write(`${this.username}@bash:${this.context.getCurrentPath()}${this.getShellSymbol()} `);
+        this.term.write(`${username}@bash:${currentPath}${this.getShellSymbol()} `);
     }
 
     setCurrentPath(path) {
