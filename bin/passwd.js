@@ -1,4 +1,4 @@
-// bin/passwd.js - Commande passwd avec vérification immédiate de l'ancien mot de passe (3 tentatives)
+// bin/passwd.js - Commande passwd avec support xterm
 // Équivalent de /usr/bin/passwd sous Debian
 
 import {
@@ -10,7 +10,6 @@ import {
     getUserInfo,
     isRoot
 } from '../modules/users/user.service.js';
-
 
 /**
  * Vérifie si un utilisateur a un mot de passe valide (pas !, *, ou vide)
@@ -37,9 +36,8 @@ function checkIfUserHasValidPassword(username, fileSystem) {
 
 /**
  * Commande passwd - Change le mot de passe d'un utilisateur
- * Comme dans un vrai système Unix/Linux, l'utilisateur a 3 tentatives pour saisir l'ancien mot de passe
  * @param {Array} args - Arguments de la commande
- * @param {Object} context - Contexte (fileSystem, saveFileSystem)
+ * @param {Object} context - Contexte (fileSystem, saveFileSystem, terminal)
  */
 export function cmdPasswd(args, context) {
     const { fileSystem, saveFileSystem, terminal } = context;
@@ -138,15 +136,17 @@ export function cmdPasswd(args, context) {
                 (username, oldPassword) => verifyOldPassword(username, oldPassword, fileSystem) :
                 null;
 
-            // startPasswordInput(
-            //     targetUsername,
-            //     requireOldPassword,
-            //     verifyOldPasswordCallback,
-            //     (oldPassword, newPassword) => {
-            //         handlePasswordChangeSuccess(targetUsername, oldPassword, newPassword, fileSystem, saveFileSystem, term);
-            //     },
-            //     accountHasValidPassword
-            // );
+            // Démarrer l'interaction pour saisir les mots de passe
+            startPasswordInput(
+                term,
+                targetUsername,
+                requireOldPassword,
+                verifyOldPasswordCallback,
+                (oldPassword, newPassword) => {
+                    handlePasswordChangeSuccess(targetUsername, oldPassword, newPassword, fileSystem, saveFileSystem, term);
+                },
+                accountHasValidPassword
+            );
         }
 
     } catch (error) {
@@ -155,22 +155,20 @@ export function cmdPasswd(args, context) {
 }
 
 /**
- * Gère le succès du changement de mot de passe (appelé seulement si validé)
+ * Gère le succès du changement de mot de passe
  * @param {string} targetUsername - Utilisateur cible
  * @param {string} oldPassword - Ancien mot de passe (déjà validé)
  * @param {string} newPassword - Nouveau mot de passe
  * @param {Object} fileSystem - Système de fichiers
  * @param {Function} saveFileSystem - Fonction de sauvegarde
+ * @param {Object} term - Terminal
  */
 function handlePasswordChangeSuccess(targetUsername, oldPassword, newPassword, fileSystem, saveFileSystem, term) {
     const showError = (str) => { term.write(`${str}\r\n`) }
     const addLine = (str) => { term.write(`${str}\r\n`) }
     const showSuccess = (str) => { term.write(`${str}\r\n`) }
+    
     try {
-
-
-
-
         // Validation du nouveau mot de passe
         if (newPassword.length < 3) {
             showError('passwd: Mot de passe trop court (minimum 3 caractères)');
@@ -180,11 +178,11 @@ function handlePasswordChangeSuccess(targetUsername, oldPassword, newPassword, f
         // Changer le mot de passe
         changePassword(targetUsername, newPassword, fileSystem, saveFileSystem);
 
-        addLine('', '');
+        addLine('');
         showSuccess(`passwd: mot de passe mis à jour avec succès`);
 
         // Affichage pour test/debug
-        addLine(`[TEST] Nouveau mot de passe: "${newPassword}"`, 'info');
+        // addLine(`[TEST] Nouveau mot de passe: "${newPassword}"`);
 
     } catch (error) {
         showError('passwd: ' + error.message);
@@ -193,14 +191,12 @@ function handlePasswordChangeSuccess(targetUsername, oldPassword, newPassword, f
 
 /**
  * Vérifie si l'ancien mot de passe est correct
- * Cette fonction sera appelée jusqu'à 3 fois par terminal.js
  * @param {string} username - Nom d'utilisateur
  * @param {string} oldPassword - Ancien mot de passe à vérifier
  * @param {Object} fileSystem - Système de fichiers
  * @returns {boolean} - true si l'ancien mot de passe est correct
  */
 function verifyOldPassword(username, oldPassword, fileSystem) {
-    // Récupérer le hash actuel du mot de passe depuis /etc/shadow
     const shadowFile = fileSystem['/etc/shadow'];
     if (!shadowFile || shadowFile.type !== 'file') {
         return false;
@@ -214,23 +210,18 @@ function verifyOldPassword(username, oldPassword, fileSystem) {
 
     const [, currentHash] = userLine.split(':');
 
-    // COMPORTEMENT UNIX/DEBIAN : Si le hash est !, *, ou vide, 
-    // le système demande quand même le mot de passe mais AUCUNE entrée ne peut être correcte
+    // Si le hash est !, *, ou vide, toujours faux
     if (!currentHash || currentHash === '!' || currentHash === '*' || currentHash === '') {
-        return false; // Toujours faux, peu importe ce qui est saisi
+        return false;
     }
 
-    // Si on a un hash valide, procéder à la vérification normale
+    // Vérification normale
     const calculatedHash = calculateHash(oldPassword);
-
-    // Comparer les hashs
-    const match = currentHash === calculatedHash;
-
-    return match;
+    return currentHash === calculatedHash;
 }
 
 /**
- * Calcule le hash d'un mot de passe (même algorithme que changePassword)
+ * Calcule le hash d'un mot de passe
  * @param {string} password - Mot de passe à hasher
  * @returns {string} - Hash du mot de passe
  */
@@ -243,13 +234,11 @@ function calculateHash(password) {
  * Affiche le statut du mot de passe
  * @param {string} username - Nom d'utilisateur
  * @param {Object} fileSystem - Système de fichiers
+ * @param {Object} term - Terminal
  */
 function showPasswordStatus(username, fileSystem, term) {
-
     const showError = (str) => { term.write(`${str}\r\n`) }
     const addLine = (str) => { term.write(`${str}\r\n`) }
-    const showSuccess = (str) => { term.write(`${str}\r\n`) }
-
 
     const shadowFile = fileSystem['/etc/shadow'];
     if (!shadowFile || shadowFile.type !== 'file') {
@@ -278,10 +267,141 @@ function showPasswordStatus(username, fileSystem, term) {
 
     const lastChangeDate = lastChange ? new Date(parseInt(lastChange) * 86400000).toLocaleDateString() : 'jamais';
 
-    addLine(`${username} ${status} ${lastChangeDate} 0 99999 7 -1`, 'info');
-    addLine('', '');
-    addLine('Légende du statut:', 'info');
-    addLine('  P  - Mot de passe défini', 'info');
-    addLine('  L  - Mot de passe verrouillé', 'info');
-    addLine('  NP - Aucun mot de passe', 'info');
+    addLine(`${username} ${status} ${lastChangeDate} 0 99999 7 -1`);
+    addLine('');
+    addLine('Légende du statut:');
+    addLine('  P  - Mot de passe défini');
+    addLine('  L  - Mot de passe verrouillé');
+    addLine('  NP - Aucun mot de passe');
+}
+
+/**
+ * Démarre le processus interactif de saisie de mot de passe
+ * @param {Object} term - Terminal xterm
+ * @param {string} targetUsername - Utilisateur cible
+ * @param {boolean} requireOldPassword - Si l'ancien mot de passe est requis
+ * @param {Function} verifyOldPasswordCallback - Fonction de vérification de l'ancien mot de passe
+ * @param {Function} onSuccess - Callback en cas de succès
+ * @param {boolean} accountHasValidPassword - Si le compte a un mot de passe valide
+ */
+function startPasswordInput(term, targetUsername, requireOldPassword, verifyOldPasswordCallback, onSuccess, accountHasValidPassword) {
+    let step = 0; // 0: ancien mot de passe, 1: nouveau mot de passe, 2: confirmation
+    let oldPassword = '';
+    let newPassword = '';
+    let attempts = 0;
+    const maxAttempts = 3;
+    
+    const showError = (str) => { term.write(`${str}\r\n`) }
+    
+    // Référence vers le service terminal pour restaurer le prompt
+    let terminalService = null;
+    if (term.terminalService) {
+        terminalService = term.terminalService;
+    }
+    
+    // Fonction pour passer au mode password
+    const enterPasswordMode = (prompt) => {
+        term.write(prompt);
+        term.passwordMode = true;
+        term.currentPasswordInput = '';
+    };
+    
+    // Fonction pour sortir du mode password et restaurer le prompt
+    const exitPasswordMode = () => {
+        term.passwordMode = false;
+        term.currentPasswordInput = '';
+        term.passwordCallback = null;
+        term.passwordCancelCallback = null;
+        
+        // Restaurer le prompt après un court délai
+        setTimeout(() => {
+            if (terminalService && typeof terminalService.showPrompt === 'function') {
+                terminalService.showPrompt();
+            }
+        }, 10);
+    };
+    
+    // Fonction pour gérer la saisie d'un mot de passe
+    const handlePasswordStep = (password) => {
+        if (step === 0 && requireOldPassword) {
+            // Vérifier l'ancien mot de passe
+            if (verifyOldPasswordCallback(targetUsername, password)) {
+                oldPassword = password;
+                step = 1;
+                attempts = 0; // Reset attempts pour le nouveau mot de passe
+                enterPasswordMode(`Nouveau mot de passe pour ${targetUsername}: `);
+            } else {
+                attempts++;
+                if (attempts >= maxAttempts) {
+                    showError('passwd: Authentification échouée');
+                    exitPasswordMode();
+                    return;
+                }
+                showError('passwd: Mot de passe incorrect, essayez encore');
+                enterPasswordMode(`Mot de passe actuel pour ${targetUsername}: `);
+            }
+        } else if (step === 1 || (!requireOldPassword && step === 0)) {
+            // Nouveau mot de passe - accepter toute saisie (même vide)
+            newPassword = password;
+            step = 2;
+            enterPasswordMode(`Retapez le nouveau mot de passe pour ${targetUsername}: `);
+        } else if (step === 2) {
+            // Confirmation du mot de passe
+            if (password === newPassword) {
+                // Valider MAINTENANT après la confirmation
+                if (newPassword.length === 0) {
+                    attempts++;
+                    if (attempts >= maxAttempts) {
+                        showError('passwd: Erreur de manipulation du jeton d\'authentification');
+                        showError('passwd: mot de passe inchangé');
+                        exitPasswordMode();
+                        return;
+                    }
+                    showError('Aucun mot de passe n\'a été fourni.');
+                    step = 1; // Recommencer le cycle
+                    enterPasswordMode(`Nouveau mot de passe pour ${targetUsername}: `);
+                    return;
+                } else if (newPassword.length < 3) {
+                    attempts++;
+                    if (attempts >= maxAttempts) {
+                        showError('passwd: Erreur de manipulation du jeton d\'authentification');
+                        showError('passwd: mot de passe inchangé');
+                        exitPasswordMode();
+                        return;
+                    }
+                    showError('Mot de passe trop court (minimum 3 caractères).');
+                    step = 1; // Recommencer le cycle
+                    enterPasswordMode(`Nouveau mot de passe pour ${targetUsername}: `);
+                    return;
+                }
+                
+                // Mot de passe valide
+                exitPasswordMode();
+                onSuccess(oldPassword, newPassword);
+            } else {
+                attempts++;
+                if (attempts >= maxAttempts) {
+                    showError('passwd: Erreur de manipulation du jeton d\'authentification');
+                    showError('passwd: mot de passe inchangé');
+                    exitPasswordMode();
+                    return;
+                }
+                showError('Les mots de passe ne correspondent pas.');
+                step = 1; // Recommencer le cycle complet
+                enterPasswordMode(`Nouveau mot de passe pour ${targetUsername}: `);
+            }
+        }
+    };
+    
+    // Configurer les callbacks pour le mode password
+    term.passwordCallback = handlePasswordStep;
+    term.passwordCancelCallback = exitPasswordMode;
+    
+    // Démarrer le processus
+    if (requireOldPassword && accountHasValidPassword) {
+        enterPasswordMode(`Mot de passe actuel pour ${targetUsername}: `);
+    } else {
+        step = 1;
+        enterPasswordMode(`Nouveau mot de passe pour ${targetUsername}: `);
+    }
 }

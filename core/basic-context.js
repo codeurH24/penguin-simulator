@@ -7,7 +7,7 @@ import { initUserSystem, getCurrentUser } from '../modules/users/user.service.js
  * @param {Object} context - Contexte auquel ajouter les méthodes
  * @returns {Object} - Contexte avec méthodes ajoutées
  */
-function addContextMethods(context) {
+export function addContextMethods(context) {
     context.getCurrentPath = function() {
         return context.currentPath;
     };
@@ -28,7 +28,7 @@ function addContextMethods(context) {
  * Crée un contexte par défaut
  * @returns {Object} - Nouveau contexte avec structure de base
  */
-function createDefaultContext() {
+export function createDefaultContext() {
     const now = new Date();
     const dirEntry = {
         type: 'dir',

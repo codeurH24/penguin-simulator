@@ -28,6 +28,7 @@ export class TerminalService {
         this.term = this.#_getTerminal();
         this.term.write('$ ');
         this.term.write('\x1b[4h');
+        this.term.terminalService = this;
 
         this.context = null;
         this.setContext(context);
@@ -55,7 +56,11 @@ export class TerminalService {
 
             this.inputStr = '';
             this.keyboard.updatePosition(this.inputStr);
-            this.showPrompt();
+
+            // NE PAS afficher le prompt si on est en mode password
+            if (!this.term.passwordMode) {
+                this.showPrompt();
+            }
         })
 
         this.keyboard.onkeyPressed((data, position) => {
@@ -134,20 +139,20 @@ export class TerminalService {
         if (!trimmedCommand) {
             return;
         }
-    
+
         if (isVariableAssignment(str.trim())) {
             handleVariableAssignment(str.trim(), this.context);
             return;
         }
-    
+
         const parsedCommand = this.parseCommand(trimmedCommand);
         if (!parsedCommand) {
             this.term.write('\r\n');
             return; // Supprimé showPrompt()
         }
-    
+
         const { cmd, args, redirections } = parsedCommand;
-    
+
         if (hasRedirection(redirections)) {
             const commandExecutor = () => {
                 this.cmd(cmd, args);
@@ -156,7 +161,7 @@ export class TerminalService {
         } else {
             this.cmd(cmd, args);
         }
-    
+
         // this.term.write('\r\n');
         // Supprimé showPrompt() - laissé dans onKeyEnter()
     }
@@ -249,7 +254,11 @@ export class TerminalService {
 
     showPrompt() {
 
-        console.log('debug user', this.context.currentUser);
+        // Ne pas afficher le prompt si on est en mode password
+        if (this.term.passwordMode) {
+            return;
+        }
+
         // S'assurer que le username est à jour
         if (this.userExist()) {
             const { currentUser } = this.context;

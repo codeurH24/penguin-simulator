@@ -5,6 +5,12 @@ export class Keyboard {
         this.positionMax = 0;
 
         this.term.onData(data => {
+
+            if (this.term.passwordMode) {
+                this.handlePasswordInput(data);
+                return;
+            }
+
             const code = data.charCodeAt(0);
             if (code === 13) { // Enter
                 this.keyEnter();
@@ -41,6 +47,41 @@ export class Keyboard {
                 this.keyTab();
             }
         });
+    }
+
+    /**
+     * Gestion de la saisie de mot de passe
+     * @param {string} data - Données saisies
+     */
+    handlePasswordInput(data) {
+        const code = data.charCodeAt(0);
+        
+        if (code === 13) { // Enter
+            this.term.write('\r\n');
+            const password = this.term.currentPasswordInput;
+            // Appeler le callback password si défini
+            if (this.term.passwordCallback) {
+                this.term.passwordCallback(password);
+            }
+        } else if (code === 127 || code === 8) { // Backspace
+            if (this.term.currentPasswordInput && this.term.currentPasswordInput.length > 0) {
+                this.term.currentPasswordInput = this.term.currentPasswordInput.slice(0, -1);
+                this.term.write('\b \b');
+            }
+        } else if (code === 3) { // Ctrl+C
+            this.term.write('^C\r\n');
+            this.term.passwordMode = false;
+            this.term.currentPasswordInput = '';
+            if (this.term.passwordCancelCallback) {
+                this.term.passwordCancelCallback();
+            }
+        } else if (code >= 32 && code <= 126) { // Caractères imprimables
+            if (!this.term.currentPasswordInput) {
+                this.term.currentPasswordInput = '';
+            }
+            this.term.currentPasswordInput += data;
+            this.term.write(''); // Afficher un astérisque
+        }
     }
 
     updatePosition(str) {
