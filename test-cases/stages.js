@@ -12,15 +12,15 @@ import { stages as commandUseraddStages } from './stages/commands/useradd.stages
 import { stages as commandPasswdStages } from './stages/commands/passwd.stages.js';
 
 export function stages(suites) {
-    // commandMkdirStages(suites);
-    // commandLsStages(suites);
-    // commandTouchStages(suites);
-    // commandRmStages(suites);
-    // commandMvStages(suites);
-    // commandCdStages(suites);
-    // commandPwdStages(suites);
-    // commandEchoStages(suites);
-    // commandCatStages(suites);
-    // commandUseraddStages(suites);
+    commandMkdirStages(suites);
+    commandLsStages(suites);
+    commandTouchStages(suites);
+    commandRmStages(suites);
+    commandMvStages(suites);
+    commandCdStages(suites);
+    commandPwdStages(suites);
+    commandEchoStages(suites);
+    commandCatStages(suites);
+    commandUseraddStages(suites);
     commandPasswdStages(suites);
 }

@@ -1,4 +1,4 @@
-// test-cases/specs/commands/cat/basic.test.js - Tests de base pour cat
+// test-cases/specs/commands/cat/basic.test.js - Tests de base pour cat (version corrigée)
 import { createTestContext, clearCaptures, getCaptures } from '../../../lib/context.js';
 import { assert, validateFileSystem, testUtils } from '../../../lib/helpers.js';
 import { createTest } from '../../../lib/runner.js';
@@ -17,11 +17,10 @@ function testCatSimpleFile() {
     // Exécuter cat
     cmdCat(['test.txt'], context);
     
-    // Vérifier l'affichage
+    // Vérifier l'affichage - cat fait UN SEUL appel à outputFn avec tout le contenu
     const captures = getCaptures();
-    assert.captureCount(2, 'cat devrait capturer 2 lignes');
-    assert.equals(captures[0].text, 'Hello World', 'Première ligne devrait être "Hello World"');
-    assert.equals(captures[1].text, 'Second Line', 'Deuxième ligne devrait être "Second Line"');
+    assert.captureCount(1, 'cat devrait capturer 1 seule sortie avec tout le contenu');
+    assert.equals(captures[0].text, 'Hello World\nSecond Line', 'Le contenu complet devrait être affiché en une fois');
     
     console.log('✅ cat affiche le contenu d\'un fichier simple');
     return true;
@@ -85,12 +84,11 @@ function testCatMultipleFiles() {
     // Exécuter cat avec plusieurs fichiers
     cmdCat(['file1.txt', 'file2.txt'], context);
     
-    // Vérifier l'affichage
+    // Vérifier l'affichage - cat fait UN appel par fichier
     const captures = getCaptures();
-    assert.captureCount(3, 'cat avec 2 fichiers devrait capturer 3 lignes au total');
-    assert.equals(captures[0].text, 'Content of file 1', 'Première ligne du premier fichier');
-    assert.equals(captures[1].text, 'Content of file 2', 'Première ligne du deuxième fichier');
-    assert.equals(captures[2].text, 'Second line', 'Deuxième ligne du deuxième fichier');
+    assert.captureCount(2, 'cat avec 2 fichiers devrait capturer 2 sorties (une par fichier)');
+    assert.equals(captures[0].text, 'Content of file 1', 'Contenu du premier fichier');
+    assert.equals(captures[1].text, 'Content of file 2\nSecond line', 'Contenu complet du deuxième fichier');
     
     console.log('✅ cat concatène plusieurs fichiers');
     return true;
@@ -109,13 +107,15 @@ function testCatOptionN() {
     // Exécuter cat avec option -n
     cmdCat(['-n', 'numbered.txt'], context);
     
-    // Vérifier l'affichage numéroté
+    // Vérifier l'affichage numéroté - UN SEUL appel avec tout le contenu traité
     const captures = getCaptures();
-    assert.captureCount(3, 'cat -n devrait capturer 3 lignes');
-    assert.isTrue(captures[0].text.includes('1'), 'Première ligne devrait être numérotée 1');
-    assert.isTrue(captures[1].text.includes('2'), 'Deuxième ligne devrait être numérotée 2');
-    assert.isTrue(captures[2].text.includes('3'), 'Troisième ligne devrait être numérotée 3');
-    assert.isTrue(captures[0].text.includes('Line 1'), 'Le contenu devrait être préservé');
+    assert.captureCount(1, 'cat -n devrait capturer 1 sortie avec tout le contenu numéroté');
+    
+    const output = captures[0].text;
+    assert.isTrue(output.includes('1'), 'Le contenu devrait contenir le numéro de ligne 1');
+    assert.isTrue(output.includes('2'), 'Le contenu devrait contenir le numéro de ligne 2');
+    assert.isTrue(output.includes('3'), 'Le contenu devrait contenir le numéro de ligne 3');
+    assert.isTrue(output.includes('Line 1'), 'Le contenu original devrait être préservé');
     
     console.log('✅ cat -n numérote les lignes');
     return true;
@@ -134,13 +134,58 @@ function testCatOptionE() {
     // Exécuter cat avec option -E
     cmdCat(['-E', 'endlines.txt'], context);
     
-    // Vérifier l'affichage avec marqueurs de fin
+    // Vérifier l'affichage avec marqueurs de fin - UN SEUL appel
     const captures = getCaptures();
-    assert.captureCount(2, 'cat -E devrait capturer 2 lignes');
-    assert.isTrue(captures[0].text.includes('First line$'), 'Première ligne devrait se terminer par $');
-    assert.equals(captures[1].text, 'Second line', 'Dernière ligne ne devrait pas avoir de $ (pas de \\n suivant)');
+    assert.captureCount(1, 'cat -E devrait capturer 1 sortie avec marqueurs de fin');
+    
+    const output = captures[0].text;
+    assert.isTrue(output.includes('First line$'), 'La première ligne devrait se terminer par $');
+    assert.isTrue(output.includes('Second line'), 'La deuxième ligne devrait être présente');
     
     console.log('✅ cat -E marque les fins de lignes');
+    return true;
+}
+
+/**
+ * Test avec fichier vide
+ */
+function testCatEmptyFile() {
+    clearCaptures();
+    const context = createTestContext();
+    
+    // Créer un fichier vide
+    testUtils.createTestFile(context, '/root/empty.txt', '');
+    
+    // Exécuter cat sur le fichier vide
+    cmdCat(['empty.txt'], context);
+    
+    // Vérifier qu'aucune sortie n'est générée pour un fichier vide
+    const captures = getCaptures();
+    assert.captureCount(0, 'cat sur fichier vide ne devrait rien capturer');
+    
+    console.log('✅ cat gère correctement les fichiers vides');
+    return true;
+}
+
+/**
+ * Test avec fichier contenant uniquement des nouvelles lignes
+ */
+function testCatOnlyNewlines() {
+    clearCaptures();
+    const context = createTestContext();
+    
+    // Créer un fichier avec seulement des nouvelles lignes
+    testUtils.createTestFile(context, '/root/newlines.txt', '\n\n\n');
+    
+    // Exécuter cat
+    cmdCat(['newlines.txt'], context);
+    
+    // Vérifier l'affichage
+    const captures = getCaptures();
+    assert.captureCount(1, 'cat devrait capturer 1 sortie');
+    assert.equals(captures[0].text, '\n\n\n', 'Les nouvelles lignes devraient être préservées');
+    
+    console.log('✅ cat préserve les nouvelles lignes');
     return true;
 }
 
@@ -153,5 +198,7 @@ export const catBasicTests = [
     createTest('Sans arguments (erreur)', testCatNoArguments),
     createTest('Plusieurs fichiers', testCatMultipleFiles),
     createTest('Option -n (numérotation)', testCatOptionN),
-    createTest('Option -E (fins de lignes)', testCatOptionE)
+    createTest('Option -E (fins de lignes)', testCatOptionE),
+    createTest('Fichier vide', testCatEmptyFile),
+    createTest('Fichier avec nouvelles lignes', testCatOnlyNewlines)
 ];

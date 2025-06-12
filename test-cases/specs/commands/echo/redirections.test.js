@@ -2,8 +2,59 @@
 import { createTestContext, clearCaptures, getCaptures } from '../../../lib/context.js';
 import { assert, validateFileSystem, testUtils } from '../../../lib/helpers.js';
 import { createTest } from '../../../lib/runner.js';
-// import { executeCommand } from '../../../../bin/bash.js';
-const executeCommand = () => {}
+import { parseCommandLine, parseRedirections } from '../../../../lib/bash-parser.js';
+import { executeWithRedirection, hasRedirection } from '../../../../lib/bash-redirections.js';
+import { substituteVariablesInArgs } from '../../../../lib/bash-variables.js';
+import { cmdEcho } from '../../../../bin/echo.js';
+
+/**
+ * Fonction pour exécuter une commande avec redirections dans le contexte de test
+ * Reproduit la logique de terminal.js mais pour les tests
+ */
+function executeCommand(commandString, context) {
+    const trimmedCommand = commandString.trim();
+    if (!trimmedCommand) {
+        return;
+    }
+
+    // Parser la commande (même logique que terminal.js)
+    const parts = parseCommandLine(trimmedCommand);
+    if (parts.length === 0) {
+        return;
+    }
+
+    const { command: cmdParts, redirections } = parseRedirections(parts);
+    if (cmdParts.length === 0) {
+        return;
+    }
+
+    const cmd = cmdParts[0];
+    let args = cmdParts.slice(1);
+    args = substituteVariablesInArgs(args, context);
+
+    // Exécuter avec ou sans redirections
+    if (hasRedirection(redirections)) {
+        const commandExecutor = () => {
+            executeCommandDirect(cmd, args, context);
+        };
+        executeWithRedirection(commandExecutor, redirections, context);
+    } else {
+        executeCommandDirect(cmd, args, context);
+    }
+}
+
+/**
+ * Exécute directement la commande sans redirection
+ */
+function executeCommandDirect(cmd, args, context) {
+    // Pour les tests, on ne supporte que echo pour l'instant
+    if (cmd === 'echo') {
+        cmdEcho(args, context);
+    } else {
+        context.showError(`Command not supported in tests: ${cmd}`);
+    }
+}
+
 /**
  * Test de redirection simple avec echo > fichier
  */
@@ -64,7 +115,7 @@ function testEchoRedirectWithOptionN() {
     // Vérifier que le fichier a été créé
     assert.fileExists(context, '/root/nonewline.txt', 'nonewline.txt devrait être créé');
     
-    // Vérifier le contenu (note: la redirection ajoute automatiquement une nouvelle ligne)
+    // Vérifier le contenu
     const file = context.fileSystem['/root/nonewline.txt'];
     assert.isTrue(file.content.includes('No newline'), 'Le fichier devrait contenir "No newline"');
     
