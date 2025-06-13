@@ -103,7 +103,7 @@ export class TerminalService {
             this.showPrompt();
         }
         
-        return this.commandOutput;
+        return this.getCapture();
     }
 
     captureOutput() {
