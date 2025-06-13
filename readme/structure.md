@@ -90,17 +90,25 @@
 - **`bash-redirections.js`** : Redirections (`>`, `>>`, `<`)
 
 ### 🧪 `/test-cases/` - Tests automatisés
-
-**Rôle :** Suite de tests complète pour valider la conformité avec Debian/Bash.
-
+**Rôle :** Suite de tests pour valider la conformité avec Debian/Bash.
 - **`main.js`** : Point d'entrée principal des tests
+- **`stages.js`** : Organisation principale de l'exécution séquentielle des stages
 - **`lib/`** : Bibliothèques de test
   - `context.js` : Contexte d'exécution des tests
   - `helpers.js` : Fonctions utilitaires d'assertion
   - `runner.js` : Moteur d'exécution des tests
-- **`specs/`** : Spécifications de test par commande
+- **`stages/`** : Organisation de l'exécution séquentielle des tests
+  - `commands/` : Fichiers *.stages.js définissant l'ordre d'exécution pour chaque test
+- **`specs/`** : Tests thématiques par commande
+  - Spécifications strictes du comportement attendu de la commande
   - `commands/` : Tests par commande
   - `system/` : Tests système (filesystem, utilisateurs)
+
+**Concepts clés :**
+- **Stage** : Orchestrateur définissant dans quel ordre exécuter les tests
+- **Spec** : Test unitaire vérifiant un comportement spécifique d'une commande
+
+
 
 ### 🎨 `/assets/` - Ressources statiques
 
