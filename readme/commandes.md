@@ -1,191 +1,406 @@
-# 📁 Structure du Projet
+# 📚 Référence des Commandes - Penguin Simulator
 
-## Organisation générale
+## 🎯 Tableau de Synthèse
 
-```
-📁 Penguin Simulator
-├── modules/              # Bibliothèques système
-│   ├── storage.js        # Gestion IndexedDB
-│   ├── filesystem.js     # Système de fichiers Unix
-│   ├── terminal.js       # Interface terminal
-│   └── users/            # Gestion utilisateurs ✅
-│       ├── user.service.js
-│       ├── current-user.js
-│       ├── user-crud.js
-│       ├── defaults/
-│       └── file-utils.js
-├── lib/                  # Bibliothèques shell
-│   ├── bash-builtins.js  # Commandes intégrées (cd, pwd, help, etc.)
-│   ├── bash-parser.js    # Parser de lignes de commande
-│   ├── bash-variables.js # Gestion des variables
-│   └── bash-redirections.js # Redirections (>, >>)
-├── bin/                  # Exécutables système
-│   ├── ls.js            # Commande ls
-│   ├── rm.js            # Commande rm
-│   ├── mkdir.js         # Commande mkdir
-│   ├── mv.js            # Commande mv
-│   ├── echo.js          # Commande echo
-│   ├── touch.js         # Commande touch
-│   ├── cat.js           # Commande cat
-│   ├── useradd.js       # Gestion utilisateurs
-│   ├── su.js            # Changement d'utilisateur
-│   ├── passwd.js        # Changement mot de passe
-│   └── user-info.js     # whoami, id, groups
-├── test-cases/          # Suite de tests automatisés
-│   ├── main.js          # Runner de tests
-│   ├── lib/             # Utilitaires de test
-│   └── specs/           # Spécifications de test
-├── assets/              # Ressources statiques
-│   ├── style.css        # Styles terminal
-│   └── terminal-favicon.svg
-├── readme/              # Documentation détaillée
-│   ├── commandes.md     # Référence exhaustive des commandes
-│   └── structure.md     # Architecture et organisation du projet
-├── index.js             # Point d'entrée principal
-├── index.html           # Interface web
-└── README.md            # Documentation principale
-```
+| Commande | Type | Options principales | Description | Statut |
+|----------|------|-------------------|-------------|--------|
+| [`ls`](#ls---lister-le-contenu) | Externe | `-l`, `-a`, `-h` | Lister le contenu d'un répertoire | ✅ |
+| [`cd`](#cd---changer-de-répertoire) | Builtin | `~`, `-` | Changer de répertoire | ✅ |
+| [`pwd`](#pwd---répertoire-courant) | Builtin | - | Afficher le répertoire courant | ✅ |
+| [`mkdir`](#mkdir---créer-des-répertoires) | Externe | `-p` | Créer des répertoires | ✅ |
+| [`rm`](#rm---supprimer) | Externe | `-r`, `-f` | Supprimer fichiers/répertoires | ✅ |
+| [`mv`](#mv---déplacerrenommer) | Externe | - | Déplacer/renommer | ✅ |
+| [`echo`](#echo---afficher-du-texte) | Externe | `-n`, `-e`, `-E` | Afficher du texte | ✅ |
+| [`touch`](#touch---créer-fichiers-vides) | Externe | - | Créer fichiers vides | ✅ |
+| [`cat`](#cat---afficher-le-contenu) | Externe | - | Afficher le contenu de fichiers | ✅ |
+| [`help`](#help---aide) | Builtin | - | Afficher l'aide des commandes | 🔴 |
+| [`clear`](#clear---vider-lécran) | Builtin | - | Vider l'écran du terminal | ✅ |
+| [`reset`](#reset---réinitialiser) | Builtin | - | Réinitialiser le terminal | 🔴 |
+| [`set`](#set---variables-denvironnement) | Builtin | - | Afficher les variables d'environnement | 🔴 |
+| [`export`](#export---exporter-des-variables) | Builtin | `[var[=value]]` | Exporter des variables | ✅ |
+| [`exit`](#exit---quitter) | Builtin | - | Quitter le terminal | 🔴 |
+| [`useradd`](#useradd---ajouter-un-utilisateur) | Externe | `-m`, `-d`, `-g`, `-s` | Ajouter un utilisateur | ✅ |
+| [`su`](#su---changer-dutilisateur) | Externe | `[user]` | Changer d'utilisateur | ✅ |
+| [`passwd`](#passwd---changer-mot-de-passe) | Externe | `[user]` | Changer mot de passe | ✅ |
+| [`whoami`](#whoami---utilisateur-courant) | Externe | - | Afficher l'utilisateur courant | 🟠 |
+| [`id`](#id---informations-didentité) | Externe | `[user]` | Afficher infos d'identité | 🟠 |
+| [`groups`](#groups---groupes-de-lutilisateur) | Externe | `[user]` | Afficher les groupes | 🟠 |
 
-## Détail des répertoires
-
-### 📦 `/modules/` - Bibliothèques système
-
-**Rôle :** Modules génériques réutilisables qui implémentent les fonctionnalités de base du système.
-
-- **`storage.js`** : Gestion de la persistance via IndexedDB
-- **`filesystem.js`** : Système de fichiers Unix avec permissions
-- **`terminal.js`** : Interface terminal et gestion xterm.js
-- **`users/`** : Gestion complète des utilisateurs
-  - `user.service.js` : Services utilisateurs (authentification, etc.)
-  - `defaults/` : Fichiers par défaut (`/etc/skel`, configurations)
-  - `file-utils.js` : Utilitaires de manipulation de fichiers
-
-### ⚙️ `/bin/` - Exécutables système
-
-**Rôle :** Commandes exécutables du système, équivalentes aux binaires Unix.
-
-**Commandes principales :**
-- **`ls.js`** : Listage de répertoires avec support couleurs
-- **`rm.js`** : Suppression de fichiers/répertoires
-- **`mkdir.js`** : Création de répertoires
-- **`mv.js`** : Déplacement/renommage
-- **`echo.js`** : Affichage de texte
-- **`touch.js`** : Création de fichiers vides
-- **`cat.js`** : Affichage de contenu de fichiers
-
-**Gestion des utilisateurs :**
-- **`useradd.js`** : Ajout d'utilisateurs
-- **`su.js`** : Changement d'utilisateur
-- **`passwd.js`** : Gestion des mots de passe
-- **`user-info.js`** : Commandes `whoami`, `id`, `groups`
-
-### 📚 `/lib/` - Bibliothèques shell
-
-**Rôle :** Bibliothèques pour le fonctionnement du shell bash.
-
-- **`bash-builtins.js`** : Commandes intégrées
-  - `help`, `pwd`, `cd`, `clear`, `reset`, `set`, `export`, `exit`
-- **`bash-parser.js`** : Analyse des lignes de commande
-- **`bash-variables.js`** : Gestion des variables d'environnement
-- **`bash-redirections.js`** : Redirections (`>`, `>>`, `<`)
-
-### 🧪 `/test-cases/` - Tests automatisés
-
-**Rôle :** Suite de tests complète pour valider la conformité avec Debian/Bash.
-
-- **`main.js`** : Point d'entrée principal des tests
-- **`lib/`** : Bibliothèques de test
-  - `context.js` : Contexte d'exécution des tests
-  - `helpers.js` : Fonctions utilitaires d'assertion
-  - `runner.js` : Moteur d'exécution des tests
-- **`specs/`** : Spécifications de test par commande
-  - `commands/` : Tests par commande
-  - `system/` : Tests système (filesystem, utilisateurs)
-
-### 🎨 `/assets/` - Ressources statiques
-
-**Rôle :** Fichiers statiques pour l'interface utilisateur.
-
-- **`style.css`** : Styles CSS pour le terminal
-- **`terminal-favicon.svg`** : Icône du terminal
-
-### 📚 `/readme/` - Documentation détaillée
-
-**Rôle :** Documentation technique détaillée du projet.
-
-- **`commandes.md`** : Référence exhaustive de toutes les commandes
-- **`structure.md`** : Ce fichier - Architecture du projet
-
-## Architecture des modules
-
-### Séparation des responsabilités
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Interface     │    │   Commandes     │    │   Système       │
-│   (xterm.js)    │◄──►│   (/bin/*.js)   │◄──►│   (/modules/)   │
-│                 │    │   (/lib/*.js)   │    │                 │
-│ • Terminal UI   │    │ • ls, rm, cd    │    │ • FileSystem    │
-│ • Clavier       │    │ • useradd, su   │    │ • Users         │
-│ • Historique    │    │ • echo, cat     │    │ • Storage       │
-│ • Shell logic   │    │ • builtins      │    │                 │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
-
-### Flux de données
-
-1. **Utilisateur** → Saisie dans le terminal
-2. **Terminal** → Parse de la commande (modules/terminal/xterm/terminal.js)
-3. **Parser** → Analyse avec lib/bash-parser.js
-4. **Shell** → Appel de la commande correspondante (/bin/ ou /lib/bash-builtins.js)
-5. **Commande** → Utilise les modules système (/modules/)
-6. **Modules** → Opérations sur filesystem/users/storage
-7. **Retour** → Affichage du résultat dans le terminal
-
-## Conventions de nommage
-
-### Fichiers
-- **Minuscules avec tirets** : `user-info.js`, `bash-parser.js`
-- **Extensions JavaScript** : `.js` pour tous les modules
-
-### Fonctions
-- **Commandes** : préfixe `cmd` → `cmdLs()`, `cmdUseradd()`
-- **Utilitaires** : camelCase → `resolvePath()`, `parsePasswdFile()`
-- **Tests** : préfixe `test` → `testLsBasicListing()`
-
-### Variables
-- **Constants** : UPPER_SNAKE_CASE → `DEFAULT_SHELL`, `ROOT_UID`
-- **Variables** : camelCase → `currentPath`, `fileSystem`
-- **Contexte** : objet standard avec propriétés définies
-
-## Points d'entrée
-
-### Application principale
-- **`index.html`** : Interface web avec xterm.js
-- **`index.js`** : Initialisation du terminal et du système
-
-### Tests
-- **`test-cases/main.js`** : Lancement des tests
-- **Console navigateur** : `window.testRunner.runAllTests()`
-
-### Développement
-- **Ajout de commande** : Créer dans `/bin/` et enregistrer dans `modules/terminal/xtml/terminal.js`
-- **Nouveaux tests** : Ajouter dans `/test-cases/specs/`
-- **Modules système** : Étendre `/modules/` selon les besoins
-- **Commandes builtin** : Ajouter dans `/lib/bash-builtins.js`
-
-## Évolutivité
-
-### Architecture modulaire
-- **Séparation claire** entre interface, commandes et système
-- **APIs standardisées** pour l'ajout de nouvelles commandes
-- **Tests automatisés** pour valider les nouvelles fonctionnalités
-
-### Standards respectés
-- **ES6 modules** : Import/export natif
-- **Conventions Unix** : Permissions, codes de retour, messages d'erreur
-- **Compatibilité Debian** : Comportement identique au système réel
+**Légende :**
+- **Externe** : Commande implémentée dans `/bin/`
+- **Builtin** : Commande intégrée au shell dans `/lib/bash-builtins.js`
+- ✅ **Fonctionnel** : Implémentation complète et testée
+- 🟠 **Tests incomplets** : Fonctionnel mais tests absents ou incomplets
+- 🔴 **Non fonctionnel** : Implémentation manquante ou défectueuse
 
 ---
 
-> 🏗️ Cette architecture permet une maintenance facile et l'ajout de nouvelles fonctionnalités tout en gardant la compatibilité avec les standards Unix/Debian.
+## 📂 Commandes de Navigation et Fichiers
+
+### `ls` - Lister le contenu
+
+**Syntaxe :** `ls [options] [répertoire]`
+
+**Options :**
+- `-l` : Format long (permissions, propriétaire, taille, date)
+- `-a` : Afficher tous les fichiers (y compris cachés avec `.`)
+- `-h` : Tailles lisibles par l'homme (avec `-l`)
+
+**Exemples :**
+```bash
+ls                    # Contenu du répertoire courant
+ls -l                 # Format détaillé
+ls -la                # Tout afficher en format détaillé
+ls /etc               # Contenu de /etc
+```
+
+**Couleurs :**
+- 🔵 Bleu : Répertoires
+- ⚪ Blanc : Fichiers normaux
+- 🟢 Vert : Exécutables
+
+---
+
+### `cd` - Changer de répertoire
+
+**Syntaxe :** `cd [répertoire]`
+
+**Raccourcis spéciaux :**
+- `cd` ou `cd ~` : Retour au répertoire home
+- `cd -` : Répertoire précédent
+- `cd ..` : Répertoire parent
+- `cd /` : Racine du système
+
+**Exemples :**
+```bash
+cd /etc               # Aller dans /etc
+cd                    # Retour home
+cd -                  # Répertoire précédent
+cd ~/Documents        # Sous-dossier du home
+```
+
+---
+
+### `pwd` - Répertoire courant
+
+**Syntaxe :** `pwd`
+
+Affiche le chemin absolu du répertoire de travail actuel.
+
+**Exemple :**
+```bash
+pwd                   # Affiche : /home/utilisateur
+```
+
+---
+
+### `mkdir` - Créer des répertoires
+
+**Syntaxe :** `mkdir [options] répertoire...`
+
+**Options :**
+- `-p` : Créer les répertoires parents si nécessaire
+
+**Exemples :**
+```bash
+mkdir dossier         # Créer un dossier
+mkdir dir1 dir2       # Créer plusieurs dossiers
+mkdir -p a/b/c        # Créer la hiérarchie complète
+```
+
+---
+
+### `rm` - Supprimer
+
+**Syntaxe :** `rm [options] fichier...`
+
+**Options :**
+- `-r` : Récursif (pour les répertoires)
+- `-f` : Forcer (pas de confirmation)
+
+**Support wildcards :**
+- `*` : N'importe quelle séquence de caractères
+- `?` : Un seul caractère
+
+**Exemples :**
+```bash
+rm fichier.txt        # Supprimer un fichier
+rm -r dossier         # Supprimer un dossier
+rm *.txt              # Supprimer tous les .txt
+rm -rf temp           # Forcer suppression récursive
+```
+
+---
+
+### `mv` - Déplacer/Renommer
+
+**Syntaxe :** `mv source destination`
+
+**Utilisations :**
+- Renommer : `mv ancien_nom nouveau_nom`
+- Déplacer : `mv fichier /autre/répertoire/`
+- Les deux : `mv fichier /autre/répertoire/nouveau_nom`
+
+**Exemples :**
+```bash
+mv fichier.txt doc.txt          # Renommer
+mv fichier.txt /tmp/           # Déplacer
+mv dossier /home/user/nouveau  # Déplacer et renommer
+```
+
+---
+
+## 📝 Commandes de Texte et Affichage
+
+### `echo` - Afficher du texte
+
+**Syntaxe :** `echo [options] [texte...]`
+
+**Options :**
+- `-n` : Pas de nouvelle ligne à la fin
+- `-e` : Interpréter les séquences d'échappement
+- `-E` : Désactiver l'interprétation (défaut)
+
+**Séquences d'échappement (avec `-e`) :**
+- `\n` : Nouvelle ligne
+- `\t` : Tabulation
+- `\\` : Antislash littéral
+
+**Exemples :**
+```bash
+echo "Bonjour monde"           # Affichage simple
+echo -n "Sans retour ligne"    # Sans \n
+echo -e "Ligne1\nLigne2"      # Avec nouvelle ligne
+echo $HOME                     # Afficher une variable
+```
+
+---
+
+### `cat` - Afficher le contenu
+
+**Syntaxe :** `cat fichier...`
+
+Affiche le contenu complet d'un ou plusieurs fichiers.
+
+**Exemples :**
+```bash
+cat fichier.txt               # Afficher un fichier
+cat file1.txt file2.txt      # Plusieurs fichiers
+```
+
+---
+
+### `touch` - Créer fichiers vides
+
+**Syntaxe :** `touch fichier...`
+
+Crée des fichiers vides ou met à jour la date de modification.
+
+**Exemples :**
+```bash
+touch nouveau.txt             # Créer fichier vide
+touch file1 file2 file3      # Plusieurs fichiers
+```
+
+---
+
+## 👤 Gestion des Utilisateurs
+
+### `useradd` - Ajouter un utilisateur
+
+**Syntaxe :** `useradd [options] username`
+
+**Options :**
+- `-m` : Créer le répertoire home
+- `-d répertoire` : Spécifier le home
+- `-g groupe` : Groupe principal
+- `-s shell` : Shell par défaut
+
+**Exemples :**
+```bash
+useradd -m john               # Créer avec home
+useradd -m -s /bin/bash alice # Avec shell spécifique
+useradd -m -d /home/custom bob # Home personnalisé
+```
+
+---
+
+### `su` - Changer d'utilisateur
+
+**Syntaxe :** `su [utilisateur]`
+
+**Comportement :**
+- `su` sans argument : Devenir root
+- `su utilisateur` : Changer vers cet utilisateur
+- Demande le mot de passe de l'utilisateur cible
+
+**Exemples :**
+```bash
+su                            # Devenir root
+su john                       # Devenir john
+```
+
+---
+
+### `passwd` - Changer mot de passe
+
+**Syntaxe :** `passwd [utilisateur]`
+
+**Comportement :**
+- `passwd` : Changer son propre mot de passe
+- `passwd user` : Changer le mot de passe d'un autre utilisateur (root requis)
+
+**Exemples :**
+```bash
+passwd                        # Mon mot de passe
+passwd john                   # Mot de passe de john (si root)
+```
+
+---
+
+### Commandes d'information
+
+#### `whoami` - Utilisateur courant 🟠
+**⚠️ STATUT : TESTS INCOMPLETS** - Fonctionnel mais tests absents ou incomplets
+
+```bash
+whoami                        # Affiche : john
+```
+
+#### `id` - Informations d'identité 🟠
+**⚠️ STATUT : TESTS INCOMPLETS** - Fonctionnel mais tests absents ou incomplets
+
+```bash
+id                            # uid=1000(john) gid=1000(john) groups=1000(john)
+id root                       # Infos sur root
+```
+
+#### `groups` - Groupes de l'utilisateur 🟠
+**⚠️ STATUT : TESTS INCOMPLETS** - Fonctionnel mais tests absents ou incomplets
+
+```bash
+groups                        # john
+groups alice                  # Groupes d'alice
+```
+
+---
+
+## ⚙️ Commandes du Shell
+
+### `help` - Aide 🔴
+
+**Syntaxe :** `help`
+
+**⚠️ STATUT : NON FONCTIONNEL**
+- Fonctionnalité incertaine
+- Aucun test disponible
+
+Devrait afficher la liste complète des commandes disponibles avec une description courte.
+
+---
+
+### `clear` - Vider l'écran
+
+**Syntaxe :** `clear`
+
+Efface tout le contenu visible du terminal.
+
+---
+
+### `reset` - Réinitialiser 🔴
+
+**Syntaxe :** `reset`
+
+**⚠️ STATUT : NON FONCTIONNEL**
+- Implémentation manquante dans `lib/bash-builtins.js`
+- Non géré dans `modules/terminal/xterm/terminal.js`
+- Aucun test disponible
+
+Devrait réinitialiser complètement l'état du terminal.
+
+---
+
+### `set` - Variables d'environnement 🔴
+
+**Syntaxe :** `set`
+
+**⚠️ STATUT : NON FONCTIONNEL**
+- Fonctionnalité incertaine
+- Tests requis pour validation
+
+Devrait afficher toutes les variables d'environnement actuelles triées par ordre alphabétique.
+
+**Variables système automatiques attendues :**
+- `HOME` : Répertoire home de l'utilisateur
+- `USER` : Nom d'utilisateur courant
+- `PWD` : Répertoire de travail actuel
+- `SHELL` : Shell par défaut
+- `PATH` : Chemins de recherche des exécutables
+
+---
+
+### `export` - Exporter des variables
+
+**Syntaxe :** `export [variable[=valeur]]...`
+
+**Utilisations :**
+- `export` : Afficher les variables exportées
+- `export VAR=valeur` : Définir et exporter
+- `export VAR` : Exporter une variable existante
+
+**Exemples :**
+```bash
+export EDITOR=nano            # Définir et exporter
+VAR=test
+export VAR                    # Exporter variable existante
+export                        # Voir toutes les exportées
+```
+
+---
+
+### `exit` - Quitter 🔴
+
+**Syntaxe :** `exit`
+
+**⚠️ STATUT : NON FONCTIONNEL**
+- Implémentation basique présente dans `lib/bash-builtins.js`
+- Non géré dans `modules/terminal/xterm/terminal.js`
+- Aucun test disponible
+
+Ferme la session terminal actuelle.
+
+---
+
+## 🔄 Fonctionnalités Avancées
+
+### Variables d'environnement
+
+**Définition :** `VARIABLE=valeur`
+**Utilisation :** `$VARIABLE` ou `${VARIABLE}`
+
+```bash
+NAME="Jean"
+echo "Bonjour $NAME"          # Bonjour Jean
+export PATH="/usr/bin:$PATH"  # Modifier PATH
+```
+
+### Redirections
+
+**Redirection de sortie :**
+- `commande > fichier` : Écraser le fichier
+- `commande >> fichier` : Ajouter au fichier
+
+```bash
+echo "Hello" > test.txt       # Créer/écraser
+echo "World" >> test.txt      # Ajouter
+ls -l > listing.txt          # Sauver listing
+```
+
+### Autocomplétion
+
+- **TAB** : Complétion automatique des noms de fichiers/répertoires
+- **↑/↓** : Navigation dans l'historique des commandes
+
+---
+
+> 📖 **Pour les développeurs :** Consultez [`readme/structure.md`](structure.md) pour comprendre l'architecture détaillée et apprendre à ajouter de nouvelles commandes.
