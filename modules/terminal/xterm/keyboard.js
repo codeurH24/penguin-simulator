@@ -80,7 +80,7 @@ export class Keyboard {
                 this.term.currentPasswordInput = '';
             }
             this.term.currentPasswordInput += data;
-            this.term.write(''); // Afficher un astérisque
+            this.term.write('');
         }
     }
 
@@ -292,7 +292,7 @@ export class Keyboard {
         this.term.write('^C\r\n');
         this.currentInput = '';
         this.cursorPosition = 0;
-        this.showPrompt();
+        // this.showPrompt();
     }
 
     handleEscape() {

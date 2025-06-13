@@ -1,0 +1,66 @@
+import { cmdPwd, cmdCd, cmdExport } from "../../../lib/bash-builtins.js";
+import { cmdLs } from "../../../bin/ls.js";
+import { cmdMkdir } from "../../../bin/mkdir.js";
+import { cmdTouch } from "../../../bin/touch.js";
+import { cmdEcho } from "../../../bin/echo.js";
+import { cmdCat } from "../../../bin/cat.js";
+import { cmdMv } from "../../../bin/mv.js";
+import { cmdPasswd } from "../../../bin/passwd.js";
+import { cmdRm } from "../../../bin/rm.js";
+import { cmdSu } from "../../../bin/su.js";
+import { cmdUseradd } from "../../../bin/useradd.js";
+import { cmdGroups, cmdId, cmdWhoami } from "../../../bin/user-info.js";
+
+export function cmd(cmd, args) {
+    if (cmd === 'cd') {
+        cmdCd(args, this.context);
+    }
+    else if (cmd === 'pwd') {
+        cmdPwd(args, this.context);
+    }
+    else if (cmd === 'ls') {
+        cmdLs(args, this.context);
+    }
+    else if (cmd === 'mkdir') {
+        cmdMkdir(args, this.context);
+    }
+    else if (cmd === 'touch') {
+        cmdTouch(args, this.context);
+    }
+    else if (cmd === 'echo') {
+        cmdEcho(args, this.context);
+    }
+    else if (cmd === 'cat') {
+        cmdCat(args, this.context);
+    }
+    else if (cmd === 'mv') {
+        cmdMv(args, this.context);
+    }
+    else if (cmd === 'rm') {
+        cmdRm(args, this.context);
+    }
+    else if (cmd === 'passwd') {
+        cmdPasswd(args, this.context);
+    }
+    else if (cmd === 'su') {
+        cmdSu(args, this.context);
+    }
+    else if (cmd === 'whoami') {
+        cmdWhoami(args, this.context);
+    }
+    else if (cmd === 'id') {
+        cmdId(args, this.context);
+    }
+    else if (cmd === 'groups') {
+        cmdGroups(args, this.context);
+    }
+    else if (cmd === 'clear') {
+        this.clear();
+    }
+    else if (cmd === 'useradd') {
+        cmdUseradd(args, this.context);
+    }
+    else {
+        this.term.write(`bash: ${cmd}: commande introuvable\r\n`);
+    }
+}
