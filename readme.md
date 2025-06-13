@@ -7,8 +7,8 @@ Un terminal Linux/Debian qui fonctionne dans votre navigateur. Tapez vos command
 ## 🚀 Utilisation
 
 1. **Clonez le projet :** `git clone https://github.com/codeurH24/penguin-simulator.git`
-2. **Lancez un serveur :** `python3 -m http.server 8000` (ou `npx serve .`)
-3. **Ouvrez :** http://localhost:8000
+2. **Lancez un serveur :** [voir comment lancer un serveur frontend](readme/run-server.md)
+3. **Ouvrez :** http://localhost:4050
 
 Tapez `help` dans le terminal pour commencer !
 
