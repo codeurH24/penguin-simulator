@@ -61,6 +61,11 @@ export class TerminalService {
         this.captureOutput();
         this.processCommand(this.inputStr);
         const out = this.getCapture();
+        
+        if (out && out.trim()) {
+            this.term.write(out);
+        }
+
         this.inputStr = '';
         this.keyboard.updatePosition(this.inputStr);
 
