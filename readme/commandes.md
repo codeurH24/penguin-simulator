@@ -128,7 +128,7 @@
 │ • Terminal UI   │    │ • ls, rm, cd    │    │ • FileSystem    │
 │ • Clavier       │    │ • useradd, su   │    │ • Users         │
 │ • Historique    │    │ • echo, cat     │    │ • Storage       │
-│ • Shell logic   │    │ • builtins      │    │ • Parsers       │
+│ • Shell logic   │    │ • builtins      │    │                 │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 

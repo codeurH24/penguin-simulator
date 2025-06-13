@@ -135,11 +135,11 @@
 ### Flux de données
 
 1. **Utilisateur** → Saisie dans le terminal
-2. **Terminal** → Parse de la commande (modules/terminal/xterm/terminal.js)
-3. **Parser** → Analyse avec lib/bash-parser.js
+2. **Terminal** → Gestion UI attendu d'un terminal (modules/terminal/xterm/terminal.js)
+3. **Parser** → Traduit la commande envoyé en données javascript (lib/bash-parser.js)
 4. **Shell** → Appel de la commande correspondante (/bin/ ou /lib/bash-builtins.js)
-5. **Commande** → Utilise les modules système (/modules/)
-6. **Modules** → Opérations sur filesystem/users/storage
+5. **Commande** → Manipule un context parfois à l'aide des modules système (/modules/)
+6. **Modules** → Opérations sur filesystem, users, storage
 7. **Retour** → Affichage du résultat dans le terminal
 
 ## Conventions de nommage
