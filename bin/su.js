@@ -53,9 +53,9 @@ function verifyPassword(username, password, fileSystem) {
 export function cmdSu(args, context) {
     const { fileSystem, setCurrentPath, saveFileSystem } = context;
     
-    // CORRECTION : Accès correct à terminalService
-    const term = context.terminal;
-    const terminalService = term.terminalService;
+    const term = context?.terminal;
+    const terminalService = term?.terminalService;
+    
     const showError = context?.showError || (str => { term.write(`${str}\r\n`) });
     
     // Par défaut, su sans argument = su root
@@ -136,9 +136,12 @@ export function cmdSu(args, context) {
  */
 function startSuAuthentication(terminalService, targetUsername, context, onSuccess, onFailure) {
     // Accès à la classe Prompt
+    const term = context?.terminal;
+    const showError = context?.showError || (str => { term.write(`${str}\r\n`) });
+    
+    // Puis remplacer TOUTES les lignes context.terminal.write par showError
     if (!terminalService || !terminalService.prompt) {
-        // Fallback si pas de service prompt
-        context.terminal.write('su: Authentication failure\r\n');
+        showError('su: Authentication failure'); 
         onFailure();
         return;
     }
