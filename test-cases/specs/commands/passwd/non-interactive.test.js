@@ -131,6 +131,7 @@ function testUnlockUser() {
     return true;
 }
 
+
 /**
  * Test passwd -d (suppression de mot de passe)
  */
@@ -146,15 +147,13 @@ function testDeletePassword() {
     // Supprimer le mot de passe
     cmdPasswd(['-d', 'deleteuser'], context);
     
-    // Vérifier les messages
+    // Vérifier le message unique
     const captures = getCaptures();
-    assert.isTrue(captures.length >= 1, 'passwd -d devrait produire au moins 1 message');
+    assert.captureCount(1, 'passwd -d devrait produire exactement 1 message');
     
-    const hasDeleteMessage = captures.some(c => c.text.includes('supprimé'));
-    const hasWarningMessage = captures.some(c => c.text.includes('Attention'));
+    const hasExpirationMessage = captures.some(c => c.text.includes('les informations d\'expiration du mot de passe ont été modifiées'));
     
-    assert.isTrue(hasDeleteMessage, 'Devrait confirmer la suppression');
-    assert.isTrue(hasWarningMessage, 'Devrait afficher un avertissement');
+    assert.isTrue(hasExpirationMessage, 'Devrait confirmer que les informations d\'expiration ont été modifiées');
     
     // Vérifier l'état dans /etc/shadow
     const shadowInfo = getShadowUserInfo(context, 'deleteuser');
@@ -287,10 +286,12 @@ function testDeleteNoPassword() {
     // Essayer de supprimer le mot de passe
     cmdPasswd(['-d', 'nopass'], context);
     
-    // Devrait réussir (même s'il n'y a pas de mot de passe)
+    // Devrait réussir avec le message d'expiration
     const captures = getCaptures();
-    const hasDeleteMessage = captures.some(c => c.text.includes('supprimé'));
-    assert.isTrue(hasDeleteMessage, 'Devrait confirmer la suppression même sans mot de passe initial');
+    assert.captureCount(1, 'passwd -d devrait produire exactement 1 message');
+    
+    const hasExpirationMessage = captures.some(c => c.text.includes('les informations d\'expiration du mot de passe ont été modifiées'));
+    assert.isTrue(hasExpirationMessage, 'Devrait confirmer que les informations d\'expiration ont été modifiées même sans mot de passe initial');
     
     console.log('✅ passwd -d sur compte sans mot de passe');
     return true;
