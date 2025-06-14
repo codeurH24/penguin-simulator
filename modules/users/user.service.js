@@ -44,3 +44,11 @@ export {
     initializeUserSystem,
     initializeUserSystem as initUserSystem  // Alias pour compatibilité
 } from './system-init.js';
+
+export { 
+    pushUser, 
+    popUser, 
+    isUserStackEmpty, 
+    getUserStackSize, 
+    clearUserStack 
+} from './user-stack.js';

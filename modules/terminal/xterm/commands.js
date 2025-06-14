@@ -1,4 +1,4 @@
-import { cmdPwd, cmdCd, cmdExport } from "../../../lib/bash-builtins.js";
+import { cmdPwd, cmdCd, cmdExport, cmdExit } from "../../../lib/bash-builtins.js";
 import { cmdLs } from "../../../bin/ls.js";
 import { cmdMkdir } from "../../../bin/mkdir.js";
 import { cmdTouch } from "../../../bin/touch.js";
@@ -59,6 +59,9 @@ export function cmd(cmd, args) {
     }
     else if (cmd === 'useradd') {
         cmdUseradd(args, this.context);
+    }
+    else if (cmd === 'exit') {
+        cmdExit(args, this.context);
     }
     else {
         this.term.write(`bash: ${cmd}: commande introuvable\r\n`);
