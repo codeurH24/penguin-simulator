@@ -8,16 +8,16 @@ import { initUserSystem, getCurrentUser } from '../modules/users/user.service.js
  * @returns {Object} - Contexte avec méthodes ajoutées
  */
 export function addContextMethods(context) {
-    context.getCurrentPath = function() {
+    context.getCurrentPath = function () {
         return context.currentPath;
     };
 
-    context.setCurrentPath = function(newPath) {
+    context.setCurrentPath = function (newPath) {
         context.variables.OLDPWD = context.currentPath;
         context.currentPath = newPath;
     };
 
-    context.saveFileSystem = function() {
+    context.saveFileSystem = function () {
         return saveContextToDB(context);
     };
 
@@ -53,10 +53,9 @@ export function createDefaultContext() {
         localVariables: {},
         sessionVariables: {},
         variables: { OLDPWD: '/root' },
-        
         currentUser: getCurrentUser()
     };
-    
+
     return addContextMethods(context);
 }
 
@@ -65,30 +64,33 @@ export function createDefaultContext() {
  * @returns {Promise<Object>} - Contexte créé et sauvegardé
  * @throws {Error} - Si impossible d'ouvrir la DB ou de sauvegarder
  */
-export async function createAndSaveContext() {
+export async function createAndSaveContext(testMode = false) {
     if (!isDBReady()) {
         await openDB();
     }
-    
+
     const context = createDefaultContext();
-    
+
     // Initialiser les fichiers système (passwd, shadow, group, etc.)
-    initUserSystem(context.fileSystem, () => {});
+    initUserSystem(context.fileSystem, () => { });
     
-    // Sauvegarder seulement les données, pas les méthodes
-    const dataToSave = {
-        fileSystem: context.fileSystem,
-        currentPath: context.currentPath,
-        variables: context.variables,
-        currentUser: context.currentUser
-    };
-    
-    const success = await saveData(dataToSave);
-    
-    if (!success) {
-        throw new Error('Échec de la sauvegarde du contexte');
+    if (!testMode) {
+        // Sauvegarder seulement les données, pas les méthodes
+        const dataToSave = {
+            fileSystem: context.fileSystem,
+            currentPath: context.currentPath,
+            variables: context.variables,
+            currentUser: getCurrentUser() //  save root user
+        };
+
+
+        const success = await saveData(dataToSave);
+
+        if (!success) {
+            throw new Error('Échec de la sauvegarde du contexte');
+        }
     }
-    
+
     console.log('Nouveau contexte créé et sauvegardé');
     return context;
 }
@@ -102,16 +104,16 @@ export async function getContextFromDB() {
     if (!isDBReady()) {
         await openDB();
     }
-    
+
     const data = await loadData();
     if (!data) {
         console.log('Aucune donnée trouvée dans IndexedDB');
         return null;
     }
-    
+
     // Ajouter les méthodes au contexte récupéré
     addContextMethods(data);
-    
+
     console.log('Contexte récupéré depuis IndexedDB:', data);
     return data;
 }
@@ -126,15 +128,15 @@ export async function saveContextToDB(context) {
     if (!isDBReady()) {
         await openDB();
     }
-    
+
     // Sauvegarder seulement les données, pas les méthodes
     const dataToSave = {
         fileSystem: context.fileSystem,
         currentPath: context.currentPath,
         variables: context.variables,
-        currentUser: context.currentUser
+        currentUser: getCurrentUser() //  save root user
     };
-    
+
     const success = await saveData(dataToSave);
     console.log('Sauvegarde contexte:', success ? 'réussie' : 'échouée');
     return success;
