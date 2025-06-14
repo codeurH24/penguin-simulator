@@ -35,7 +35,7 @@ function verifyPassword(username, password, fileSystem) {
     const [, currentHash] = userLine.split(':');
 
     // Si le hash est !, *, ou vide, le compte est verrouillé/sans mot de passe
-    if (!currentHash || currentHash === '!' || currentHash.startsWith('!') || 
+    if (!currentHash || currentHash === '!' || currentHash.startsWith('!') ||
         currentHash === '*' || currentHash === '') {
         return false;
     }
@@ -52,22 +52,22 @@ function verifyPassword(username, password, fileSystem) {
  */
 export function cmdSu(args, context) {
     const { fileSystem, setCurrentPath, saveFileSystem } = context;
-    
+
     // CORRECTION : Accès correct à terminalService
     const term = context.terminal;
     const terminalService = term.terminalService;
     const showError = context?.showError || (str => { term.write(`${str}\r\n`) });
-    
+
     // Par défaut, su sans argument = su root
     let targetUsername = args.length > 0 ? args[0] : 'root';
     let loginShell = false;
     let command = null;
-    
+
     // Parser les options
     let i = 0;
     while (i < args.length) {
         const arg = args[i];
-        
+
         if (arg === '-' || arg === '-l' || arg === '--login') {
             loginShell = true;
         } else if (arg === '-c' && i + 1 < args.length) {
@@ -85,31 +85,38 @@ export function cmdSu(args, context) {
         }
         i++;
     }
-    
+
     const currentUser = getCurrentUser();
-    
+
     // Vérifier si l'utilisateur cible existe
     const targetUser = getUserInfo(targetUsername, fileSystem);
     if (!targetUser) {
         showError(`su: l'utilisateur '${targetUsername}' n'existe pas`);
         return;
     }
-    
+
     // Si on change vers le même utilisateur, ne rien faire
     if (targetUsername === currentUser.username) {
         return; // Silencieux comme le vrai bash
     }
-    
+
     // EXCEPTION DE SÉCURITÉ : root peut su vers n'importe qui sans mot de passe
     if (currentUser.uid === 0) {
         executeSuChange(context, targetUsername, currentUser, loginShell);
         return;
     }
-    
+
+    // COMPORTEMENT LINUX : Si l'utilisateur cible n'a pas de mot de passe, 
+    // n'importe qui peut su vers lui sans demande
+    if (targetUserHasNoPassword(targetUsername, fileSystem)) {
+        executeSuChange(context, targetUsername, currentUser, loginShell);
+        return;
+    }
+
     // COMPORTEMENT BASH CORRECT : Toujours demander le mot de passe
     // (sauf pour root), même si le compte est verrouillé avec "!"
     // L'authentification échoue APRÈS la saisie, pas avant
-    
+
     // Démarrer l'authentification via la classe Prompt
     startSuAuthentication(
         terminalService,
@@ -145,7 +152,7 @@ function startSuAuthentication(terminalService, targetUsername, context, onSucce
 
     let attempts = 0;
     const maxAttempts = 1; // Comportement bash : une seule tentative
-    
+
     const attemptAuthentication = () => {
         // Utiliser askPassword de la classe Prompt
         terminalService.prompt.askPassword(
@@ -163,7 +170,7 @@ function startSuAuthentication(terminalService, targetUsername, context, onSucce
                         onFailure();
                         return;
                     }
-                    
+
                     // Nouvelle tentative
                     context.terminal.write('su: Authentication failure\r\n');
                     attemptAuthentication();
@@ -175,7 +182,7 @@ function startSuAuthentication(terminalService, targetUsername, context, onSucce
             }
         );
     };
-    
+
     // Démarrer la première tentative
     attemptAuthentication();
 }
@@ -189,7 +196,7 @@ function startSuAuthentication(terminalService, targetUsername, context, onSucce
  */
 function executeSuChange(context, targetUsername, currentUser, loginShell) {
     const { fileSystem, setCurrentPath } = context;
-    
+
     try {
         // IMPORTANT: Empiler l'utilisateur courant AVANT de changer
         const userToPush = {
@@ -197,11 +204,11 @@ function executeSuChange(context, targetUsername, currentUser, loginShell) {
             currentPath: context.getCurrentPath() // Sauver aussi le répertoire courant
         };
         pushUser(userToPush);
-        
+
         // Changer d'utilisateur
         const newUser = switchUser(targetUsername, fileSystem);
         context.currentUser = newUser;
-        
+
         // CORRECTION : Ne changer de répertoire QUE si c'est un login shell (avec tiret)
         if (loginShell) {
             if (fileSystem[newUser.home]) {
@@ -209,13 +216,34 @@ function executeSuChange(context, targetUsername, currentUser, loginShell) {
             }
         }
         // Sans tiret : rester dans le répertoire courant
-        
+
         // Su est COMPLÈTEMENT SILENCIEUX quand ça réussit (comportement bash)
-        
+
     } catch (error) {
         const showError = context?.showError || (str => { context.terminal.write(`${str}\r\n`) });
         showError(error.message);
     }
+}
+
+/**
+ * Vérifie si un utilisateur n'a pas de mot de passe (hash vide)
+ */
+function targetUserHasNoPassword(username, fileSystem) {
+    const shadowFile = fileSystem['/etc/shadow'];
+    if (!shadowFile || shadowFile.type !== 'file') {
+        return false;
+    }
+
+    const lines = shadowFile.content.split('\n');
+    const userLine = lines.find(line => line.startsWith(username + ':'));
+    if (!userLine) {
+        return false;
+    }
+
+    const [, currentHash] = userLine.split(':');
+
+    // Pas de mot de passe = hash vide (après passwd -d)
+    return !currentHash || currentHash === '';
 }
 
 // Export pour les tests

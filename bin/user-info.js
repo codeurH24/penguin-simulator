@@ -9,6 +9,8 @@ import { getCurrentUser, parseGroupFile } from '../modules/users/user.service.js
  * @param {Object} context - Contexte
  */
 export function cmdWhoami(args, context) {
+
+    const term = context?.terminal;
     const outputFn = context?.addLine || ((str) => { term.write(`${str}\r\n`) });
     const showError = context?.addLine || ((str) => { term.write(`${str}\r\n`) });
     
