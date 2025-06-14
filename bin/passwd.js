@@ -124,8 +124,8 @@ export function cmdPasswd(args, context) {
         } else if (delete_) {
             // Supprimer le mot de passe
             deleteUserPassword(targetUsername, fileSystem, saveFileSystem);
-            // showSuccess(`passwd: mot de passe supprimé pour '${targetUsername}'`);
-            showSuccess('informations d\'expiration du mot de passe modifiées');
+            showSuccess(`passwd: mot de passe supprimé pour '${targetUsername}'`);
+            showSuccess('Attention: Le compte est maintenant sans mot de passe!');
 
         } else {
             // CORRECTION: Ajouter gestion mode test avant le mode interactif

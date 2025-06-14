@@ -10,7 +10,6 @@ import { cmdRm } from "../../../bin/rm.js";
 import { cmdSu } from "../../../bin/su.js";
 import { cmdUseradd } from "../../../bin/useradd.js";
 import { cmdGroups, cmdId, cmdWhoami } from "../../../bin/user-info.js";
-import { cmdUserdel } from "../../../bin/userdel.js";
 
 export function cmd(cmd, args) {
     if (cmd === 'cd') {
@@ -47,7 +46,6 @@ export function cmd(cmd, args) {
         cmdSu(args, this.context);
     }
     else if (cmd === 'whoami') {
-        console.log('cmd whoami context', this.context);
         cmdWhoami(args, this.context);
     }
     else if (cmd === 'id') {
@@ -61,9 +59,6 @@ export function cmd(cmd, args) {
     }
     else if (cmd === 'useradd') {
         cmdUseradd(args, this.context);
-    }
-    else if (cmd === 'userdel') {
-        cmdUserdel(args, this.context);
     }
     else if (cmd === 'exit') {
         cmdExit(args, this.context);

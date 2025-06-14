@@ -132,7 +132,7 @@ function testUnlockUser() {
 }
 
 /**
- * Test passwd -d (suppression de mot de passe) - VERSION CORRIGÉE
+ * Test passwd -d (suppression de mot de passe)
  */
 function testDeletePassword() {
     clearCaptures();
@@ -146,14 +146,15 @@ function testDeletePassword() {
     // Supprimer le mot de passe
     cmdPasswd(['-d', 'deleteuser'], context);
     
-    // Vérifier le message - CORRECTION: message français équivalent à "password expiry information changed"
+    // Vérifier les messages
     const captures = getCaptures();
     assert.isTrue(captures.length >= 1, 'passwd -d devrait produire au moins 1 message');
     
-    // Chercher le message français équivalent
-    const hasExpiryMessage = captures.some(c => c.text.includes('informations d\'expiration du mot de passe modifiées'));
+    const hasDeleteMessage = captures.some(c => c.text.includes('supprimé'));
+    const hasWarningMessage = captures.some(c => c.text.includes('Attention'));
     
-    assert.isTrue(hasExpiryMessage, 'Devrait afficher "informations d\'expiration du mot de passe modifiées"');
+    assert.isTrue(hasDeleteMessage, 'Devrait confirmer la suppression');
+    assert.isTrue(hasWarningMessage, 'Devrait afficher un avertissement');
     
     // Vérifier l'état dans /etc/shadow
     const shadowInfo = getShadowUserInfo(context, 'deleteuser');
@@ -273,7 +274,7 @@ function testUnlockNotLocked() {
 }
 
 /**
- * Test passwd -d sur compte sans mot de passe - VERSION CORRIGÉE
+ * Test passwd -d sur compte sans mot de passe
  */
 function testDeleteNoPassword() {
     clearCaptures();
@@ -288,9 +289,7 @@ function testDeleteNoPassword() {
     
     // Devrait réussir (même s'il n'y a pas de mot de passe)
     const captures = getCaptures();
-    
-    // CORRECTION: chercher le nouveau message français au lieu de "supprimé"
-    const hasDeleteMessage = captures.some(c => c.text.includes('informations d\'expiration du mot de passe modifiées'));
+    const hasDeleteMessage = captures.some(c => c.text.includes('supprimé'));
     assert.isTrue(hasDeleteMessage, 'Devrait confirmer la suppression même sans mot de passe initial');
     
     console.log('✅ passwd -d sur compte sans mot de passe');

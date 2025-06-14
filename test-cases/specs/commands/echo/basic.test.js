@@ -10,7 +10,6 @@ import { cmdEcho } from '../../../../bin/echo.js';
 function testEchoNoArguments() {
     clearCaptures();
     const context = createTestContext();
-    console.log('DEBUG TEST "echo" context', context);
     
     // Exécuter echo sans arguments
     cmdEcho([], context);
