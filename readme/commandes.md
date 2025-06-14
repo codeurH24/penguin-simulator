@@ -18,7 +18,7 @@
 | [`reset`](#reset---réinitialiser) | Builtin | - | Réinitialiser le terminal | 🔴 |
 | [`set`](#set---variables-denvironnement) | Builtin | - | Afficher les variables d'environnement | 🔴 |
 | [`export`](#export---exporter-des-variables) | Builtin | `[var[=value]]` | Exporter des variables | ✅ |
-| [`exit`](#exit---quitter) | Builtin | - | Quitter le terminal | 🔴 |
+| [`exit`](#exit---quitter) | Builtin | `[code]` | Quitter une session utilisateur | 🟠 |
 | [`useradd`](#useradd---ajouter-un-utilisateur) | Externe | `-m`, `-d`, `-g`, `-s` | Ajouter un utilisateur | ✅ |
 | [`su`](#su---changer-dutilisateur) | Externe | `[user]` | Changer d'utilisateur | ✅ |
 | [`passwd`](#passwd---changer-mot-de-passe) | Externe | `[user]` | Changer mot de passe | ✅ |
@@ -358,16 +358,16 @@ export                        # Voir toutes les exportées
 
 ---
 
-### `exit` - Quitter 🔴
+### `exit` - Quitter 🟠
 
 **Syntaxe :** `exit`
 
-**⚠️ STATUT : NON FONCTIONNEL**
-- Implémentation basique présente dans `lib/bash-builtins.js`
-- Non géré dans `modules/terminal/xterm/terminal.js`
+**⚠️ STATUT : TESTS INCOMPLETS**
+- Implémentation fonctionnelle dans `lib/bash-builtins.js`
+- Gestion complète dans `modules/terminal/xterm/terminal.js`
 - Aucun test disponible
 
-Ferme la session terminal actuelle.
+Quitte la session utilisateur courante. Si une pile d'utilisateurs existe (suite à `su`), retourne à l'utilisateur précédent.
 
 ---
 
