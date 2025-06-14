@@ -1,7 +1,8 @@
 import { TerminalService } from './modules/terminal/xterm/terminal.js';
 import { createAndSaveContext, getContextFromDB } from './core/basic-context.js';
 import { envAddHome, envLoadFromEnvironment } from './modules/install-system.js';
-import { cmdPasswd } from './bin/passwd.js';
+import { exportAsDownloadURL } from './modules/backup/filesystem/export-utils.js';
+import { loadBackupTestData, removeBackupTestData } from './modules/backup/loaders.js';
 
 export async function initApp() {
     try {
@@ -9,10 +10,10 @@ export async function initApp() {
         let context = await getContextFromDB();
         if (!context) {
             context = await createAndSaveContext();
-        }
 
-        if (!context.variables.HOME) envAddHome(context);
-        envLoadFromEnvironment(context)
+            if (!context.variables.HOME) envAddHome(context);
+            envLoadFromEnvironment(context);
+        }
 
         const terminal = new TerminalService(context);
         return terminal;
@@ -25,3 +26,5 @@ export async function initApp() {
 
 // Lancer l'initialisation
 initApp();
+
+

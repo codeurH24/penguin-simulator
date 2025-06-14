@@ -19,6 +19,7 @@ Tapez `help` dans le terminal pour commencer !
 | **Voir toutes les commandes disponibles** | [📚 Liste des commandes](readme/commandes.md) |
 | **Créer des commandes interactives** | [🗨️ Guide des prompts personnalisés](readme/prompts.md) |
 | **Comprendre l'architecture du projet** | [🏗️ Structure technique](readme/structure.md) |
+| **Système de backup filesystem** | [💾 Backup et export](readme/backup-filesystem.md) |
 | **Documentation complète** | [📖 README complet](readme/readme.full.md) |
 | **Signaler un problème** | [🐛 Issues GitHub](https://github.com/codeurH24/penguin-simulator/issues) |
 

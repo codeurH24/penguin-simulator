@@ -1,0 +1,58 @@
+{
+    "/root/testdir": {
+      "type": "dir",
+      "size": 4096,
+      "created": "2025-06-14T16:47:52.011Z",
+      "modified": "2025-06-14T16:47:52.011Z",
+      "accessed": "2025-06-14T16:47:52.011Z",
+      "permissions": "drwxr-xr-x",
+      "owner": "root",
+      "group": "root",
+      "links": 2
+    },
+    "/root/testdir/dossier1": {
+      "type": "dir",
+      "size": 4096,
+      "created": "2025-06-14T16:48:00.867Z",
+      "modified": "2025-06-14T16:48:00.867Z",
+      "accessed": "2025-06-14T16:48:00.867Z",
+      "permissions": "drwxr-xr-x",
+      "owner": "root",
+      "group": "root",
+      "links": 2
+    },
+    "/root/testdir/dossier2": {
+      "type": "dir",
+      "size": 4096,
+      "created": "2025-06-14T16:48:02.700Z",
+      "modified": "2025-06-14T16:48:02.700Z",
+      "accessed": "2025-06-14T16:48:02.700Z",
+      "permissions": "drwxr-xr-x",
+      "owner": "root",
+      "group": "root",
+      "links": 2
+    },
+    "/root/testdir/dossier3": {
+      "type": "dir",
+      "size": 4096,
+      "created": "2025-06-14T16:48:04.633Z",
+      "modified": "2025-06-14T16:48:04.633Z",
+      "accessed": "2025-06-14T16:48:04.633Z",
+      "permissions": "drwxr-xr-x",
+      "owner": "root",
+      "group": "root",
+      "links": 2
+    },
+    "/root/testdir/file": {
+      "type": "file",
+      "size": 0,
+      "content": "",
+      "created": "2025-06-14T16:48:11.100Z",
+      "modified": "2025-06-14T16:48:11.100Z",
+      "accessed": "2025-06-14T16:48:11.100Z",
+      "permissions": "-rw-r--r--",
+      "owner": "root",
+      "group": "root",
+      "links": 1
+    }
+}
