@@ -10,6 +10,7 @@ import { cmdRm } from "../../../bin/rm.js";
 import { cmdSu } from "../../../bin/su.js";
 import { cmdUseradd } from "../../../bin/useradd.js";
 import { cmdGroups, cmdId, cmdWhoami } from "../../../bin/user-info.js";
+import { cmdChmod } from "../../../bin/chmod.js";
 
 export function cmd(cmd, args) {
     if (cmd === 'cd') {
@@ -62,6 +63,9 @@ export function cmd(cmd, args) {
     }
     else if (cmd === 'exit') {
         cmdExit(args, this.context);
+    }
+    else if (cmd === 'chmod') {
+        cmdChmod(args, this.context);
     }
     else {
         this.term.write(`bash: ${cmd}: commande introuvable\r\n`);
