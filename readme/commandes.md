@@ -18,7 +18,7 @@
 | [`reset`](#reset---réinitialiser) | Builtin | - | Réinitialiser le terminal | 🔴 |
 | [`set`](#set---variables-denvironnement) | Builtin | - | Afficher les variables d'environnement | 🔴 |
 | [`export`](#export---exporter-des-variables) | Builtin | `[var[=value]]` | Exporter des variables | ✅ |
-| [`exit`](#exit---quitter) | Builtin | `[code]` | Quitter une session utilisateur | 🟠 |
+| [`exit`](#exit---quitter) | Builtin | `[code]` | Quitter une session utilisateur | ✅ |
 | [`useradd`](#useradd---ajouter-un-utilisateur) | Externe | `-m`, `-d`, `-g`, `-s` | Ajouter un utilisateur | ✅ |
 | [`su`](#su---changer-dutilisateur) | Externe | `[user]` | Changer d'utilisateur | ✅ |
 | [`passwd`](#passwd---changer-mot-de-passe) | Externe | `[user]` | Changer mot de passe | ✅ |
@@ -358,16 +358,32 @@ export                        # Voir toutes les exportées
 
 ---
 
-### `exit` - Quitter 🟠
+### `exit` - Quitter
 
-**Syntaxe :** `exit`
+**Syntaxe :** `exit [code]`
 
-**⚠️ STATUT : TESTS INCOMPLETS**
-- Implémentation fonctionnelle dans `lib/bash-builtins.js`
-- Gestion complète dans `modules/terminal/xterm/terminal.js`
-- Aucun test disponible
+**Comportement :**
+- Quitte la session utilisateur courante
+- Si une pile d'utilisateurs existe (suite à `su`), retourne à l'utilisateur précédent
+- Si aucun utilisateur dans la pile, affiche un message de sortie final
+- Code de sortie optionnel (défaut : 0)
 
-Quitte la session utilisateur courante. Si une pile d'utilisateurs existe (suite à `su`), retourne à l'utilisateur précédent.
+**Fonctionnalités :**
+- **Dépilement des sessions** : Gestion automatique de la pile créée par `su`
+- **Restauration du contexte** : Retour à l'utilisateur et répertoire précédents
+- **Gestion d'erreurs** : Validation des codes de sortie
+- **Comportement silencieux** : Aucune sortie lors du dépilement (conforme bash)
+
+**Exemples :**
+```bash
+su alice                      # Passer à alice
+exit                          # Retourner à l'utilisateur précédent
+```
+
+**Tests disponibles :**
+- Séquence complète de dépilement (root→alice→bob→charlie)
+- Gestion des codes de sortie et arguments invalides
+- Préservation des répertoires avec différents types de `su`
 
 ---
 

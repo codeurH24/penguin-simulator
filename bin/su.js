@@ -86,7 +86,7 @@ export function cmdSu(args, context) {
         i++;
     }
 
-    const currentUser = getCurrentUser();
+    const currentUser = context.currentUser;
 
     // Vérifier si l'utilisateur cible existe
     const targetUser = getUserInfo(targetUsername, fileSystem);

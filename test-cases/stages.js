@@ -11,6 +11,7 @@ import { stages as commandCatStages } from './stages/commands/cat.stages.js';
 import { stages as commandUseraddStages } from './stages/commands/useradd.stages.js';
 import { stages as commandPasswdStages } from './stages/commands/passwd.stages.js';
 import { stages as commandSuStages } from './stages/commands/su.stages.js';
+import { stages as commandExitStages } from './stages/commands/exit.stages.js';
 
 export async function stages(suites) {
     commandMkdirStages(suites);
@@ -25,4 +26,5 @@ export async function stages(suites) {
     commandUseraddStages(suites);
     await commandPasswdStages(suites);
     commandSuStages(suites);
+    commandExitStages(suites);
 }
