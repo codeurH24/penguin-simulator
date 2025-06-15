@@ -41,7 +41,6 @@ function checkIfUserHasValidPassword(username, fileSystem) {
  */
 export function cmdPasswd(args, context) {
     const { fileSystem, saveFileSystem, terminal } = context;
-
     const term = terminal;
     // CORRECTION: Sécuriser les appels avec term
     const showSuccess = context?.addLine || (str => { 
@@ -52,7 +51,7 @@ export function cmdPasswd(args, context) {
     });
     
 
-    const currentUser = getCurrentUser();
+    const currentUser = context.currentUser;
     let targetUsername = currentUser.username; // Par défaut, changer son propre mot de passe
     let lock = false;
     let unlock = false;
@@ -93,7 +92,7 @@ export function cmdPasswd(args, context) {
     }
 
     // Vérifier les permissions
-    if (targetUsername !== currentUser.username && !isRoot()) {
+    if (targetUsername !== currentUser.username && context?.currentUser?.uid !== 0) {
         showError(`passwd: Seul root peut changer le mot de passe d'autres utilisateurs`);
         return;
     }
@@ -103,9 +102,9 @@ export function cmdPasswd(args, context) {
         showPasswordStatus(targetUsername, fileSystem, showSuccess, showError);
         return;
     }
-
+    
     // Opérations nécessitant les privilèges root
-    if ((lock || unlock || delete_) && !isRoot()) {
+    if ((lock || unlock || delete_) && context?.currentUser?.uid !== 0) {
         showError('passwd: Seul root peut verrouiller/déverrouiller/supprimer des mots de passe');
         return;
     }

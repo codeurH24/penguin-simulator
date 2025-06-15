@@ -22,14 +22,18 @@ function captureShowSuccess(message) {
     console.log(`[CAPTURE SUCCESS] ${message}`);
 }
 
+
 /**
  * Crée un contexte de test utilisant VOS VRAIES FONCTIONS
  * Reproduit exactement les mêmes étapes que createAndSaveContext() mais sans DB
  * @returns {Object} - Contexte de test avec vraie structure
  */
-export function createTestContext() {
+export function createTestContext(nameTest=null) {
     // Étape 1: Utiliser votre vraie fonction de création de contexte
-    const context = createDefaultContext();
+    const context = createDefaultContext(nameTest);
+
+    if (nameTest)
+        console.log('DEBUG createDefaultContext', nameTest, context);
     
     // Étape 2: Initialiser les fichiers système (comme dans votre vrai code)
     initUserSystem(context.fileSystem, () => {});

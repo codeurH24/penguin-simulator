@@ -10,15 +10,14 @@ import { addUser, isRoot, initUserSystem, parsePasswdFile } from '../modules/use
  */
 export function cmdUseradd(args, context) {
     const { fileSystem, saveFileSystem } = context;
-
-
+    
     const term = context.terminal;
     // Utiliser les fonctions du contexte si disponibles, sinon celles par défaut
     const errorFn = context?.showError || ((str) => { term.write(`${str}\r\n`) });
     const successFn = context?.showSuccess || ((str) => { term.write(`${str}\r\n`) });
     
     // Vérifier les permissions (seul root peut ajouter des utilisateurs)
-    if (!isRoot()) {
+    if (context?.currentUser?.uid !== 0) {
         errorFn('useradd: Seul root peut ajouter des utilisateurs au système');
         return;
     }

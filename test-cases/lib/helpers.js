@@ -8,38 +8,38 @@ import { getCaptures } from './context.js';
  */
 export function validateFileSystem(context) {
     const errors = [];
-    
+
     if (!context.fileSystem['/']) {
         errors.push('Dossier racine / manquant');
     }
-    
+
     if (!context.fileSystem['/home']) {
         errors.push('Dossier /home manquant');
     }
-    
+
     if (!context.fileSystem['/root']) {
         errors.push('Dossier /root manquant');
     }
-    
+
     // CORRECTION: Utiliser getCurrentPath() au lieu de currentPath
     const currentPath = context.getCurrentPath();
     if (currentPath !== '/root') {
         errors.push(`currentPath devrait être /root, mais c'est ${currentPath}`);
     }
-    
+
     // Vérifier les types
     if (context.fileSystem['/']?.type !== 'dir') {
         errors.push('/ n\'est pas un dossier');
     }
-    
+
     if (context.fileSystem['/home']?.type !== 'dir') {
         errors.push('/home n\'est pas un dossier');
     }
-    
+
     if (context.fileSystem['/root']?.type !== 'dir') {
         errors.push('/root n\'est pas un dossier');
     }
-    
+
     return {
         success: errors.length === 0,
         errors
@@ -58,7 +58,7 @@ export const assert = {
             throw new Error(`Assertion échouée: ${message}`);
         }
     },
-    
+
     /**
      * Vérifie qu'une condition est fausse
      */
@@ -67,7 +67,7 @@ export const assert = {
             throw new Error(`Assertion échouée: ${message}`);
         }
     },
-    
+
     /**
      * Vérifie l'égalité de deux valeurs
      */
@@ -76,21 +76,30 @@ export const assert = {
             throw new Error(`Assertion échouée: ${message}. Attendu: ${JSON.stringify(expected)}, Reçu: ${JSON.stringify(actual)}`);
         }
     },
-    
+
+    /**
+     * Vérifie que deux valeurs sont différentes
+     */
+    notEquals(actual, expected, message) {
+        if (actual === expected) {
+            throw new Error(`Assertion échouée: ${message}. Les valeurs ne devraient pas être égales: ${JSON.stringify(actual)}`);
+        }
+    },
+
     /**
      * Vérifie qu'un fichier/dossier existe
      */
     fileExists(context, path, message = `Le fichier ${path} devrait exister`) {
         this.isTrue(context.fileSystem[path] !== undefined, message);
     },
-    
+
     /**
      * Vérifie qu'un fichier/dossier n'existe pas
      */
     fileNotExists(context, path, message = `Le fichier ${path} ne devrait pas exister`) {
         this.isTrue(context.fileSystem[path] === undefined, message);
     },
-    
+
     /**
      * Vérifie qu'un élément est un dossier
      */
@@ -98,7 +107,7 @@ export const assert = {
         this.fileExists(context, path);
         this.isTrue(context.fileSystem[path].type === 'dir', message);
     },
-    
+
     /**
      * Vérifie qu'un élément est un fichier
      */
@@ -106,7 +115,7 @@ export const assert = {
         this.fileExists(context, path);
         this.isTrue(context.fileSystem[path].type === 'file', message);
     },
-    
+
     /**
      * Vérifie qu'une sortie contient un texte
      */
@@ -115,7 +124,7 @@ export const assert = {
         const found = captures.some(capture => capture.text.includes(text));
         this.isTrue(found, message);
     },
-    
+
     /**
      * Vérifie qu'une sortie a une classe CSS spécifique
      */
@@ -124,7 +133,7 @@ export const assert = {
         const found = captures.some(capture => capture.className === className);
         this.isTrue(found, message);
     },
-    
+
     /**
      * Vérifie le nombre de captures
      */
@@ -132,7 +141,7 @@ export const assert = {
         const captures = getCaptures();
         this.equals(captures.length, expectedCount, message);
     },
-    
+
     /**
      * Vérifie qu'il n'y a aucune capture (mode silencieux Unix)
      */
@@ -151,7 +160,7 @@ export const testUtils = {
     debugFileSystem(context, label = 'Système de fichiers') {
         console.log(`DEBUG - ${label}:`, Object.keys(context.fileSystem));
     },
-    
+
     /**
      * Affiche les captures actuelles pour debug
      */
@@ -159,7 +168,7 @@ export const testUtils = {
         const captures = getCaptures();
         console.log('DEBUG - Captures:', captures.map(c => `"${c.text}" [${c.className}]`));
     },
-    
+
     /**
      * Crée un dossier de test dans le contexte
      */
@@ -177,7 +186,7 @@ export const testUtils = {
             links: 2
         };
     },
-    
+
     /**
      * Crée un fichier de test dans le contexte
      */

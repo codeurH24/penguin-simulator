@@ -55,7 +55,7 @@ export function cmdSu(args, context) {
 
     // CORRECTION : Accès correct à terminalService
     const term = context.terminal;
-    const terminalService = term.terminalService;
+    const terminalService = term?.terminalService;
     const showError = context?.showError || (str => { term.write(`${str}\r\n`) });
 
     // Par défaut, su sans argument = su root
@@ -117,20 +117,23 @@ export function cmdSu(args, context) {
     // (sauf pour root), même si le compte est verrouillé avec "!"
     // L'authentification échoue APRÈS la saisie, pas avant
 
-    // Démarrer l'authentification via la classe Prompt
-    startSuAuthentication(
-        terminalService,
-        targetUsername,
-        context,
-        // Succès : exécuter le changement d'utilisateur
-        () => {
-            executeSuChange(context, targetUsername, currentUser, loginShell);
-        },
-        // Échec : ne rien faire (message déjà affiché)
-        () => {
-            // L'échec d'authentification a déjà été géré
-        }
-    );
+    if (terminalService) {
+        // Démarrer l'authentification via la classe Prompt
+        startSuAuthentication(
+            terminalService,
+            targetUsername,
+            context,
+            // Succès : exécuter le changement d'utilisateur
+            () => {
+                executeSuChange(context, targetUsername, currentUser, loginShell);
+            },
+            // Échec : ne rien faire (message déjà affiché)
+            () => {
+                // L'échec d'authentification a déjà été géré
+            }
+        );
+    }
+
 }
 
 /**

@@ -52,8 +52,15 @@ export function createDefaultContext() {
         currentPath: '/root',
         localVariables: {},
         sessionVariables: {},
-        variables: { OLDPWD: '/root' },
-        currentUser: getCurrentUser()
+        variables: { OLDPWD: '/root', PWD: '/root', USER: 'root', UID: 0, HOSTNAME: 'bash', HOME: '/root' },
+        currentUser: {
+            username: 'root',
+            uid: 0,
+            gid: 0,
+            home: '/root',
+            shell: '/bin/bash',
+            groups: ['root']
+        }
     };
 
     return addContextMethods(context);
