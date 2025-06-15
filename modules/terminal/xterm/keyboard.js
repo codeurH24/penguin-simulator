@@ -22,6 +22,9 @@ export class Keyboard {
             if (code === 13) { // Enter
                 this.keyEnter();
             }
+            else if (code === 3) { // Ctrl+C
+                this.keyCtrlC();
+            }
             else if (code >= 32 && code <= 126) { // Regular chars
                 this.keyPressed(data);
                 this.position++;
@@ -134,9 +137,7 @@ export class Keyboard {
             // Mode password Linux authentique : ne rien afficher
         }
     }
-
-    // === TOUTES LES MÉTHODES ORIGINALES PRÉSERVÉES ===
-
+    
     updatePosition(str) {
         this.position = str.length;
         this.positionMax = str.length
@@ -153,6 +154,19 @@ export class Keyboard {
 
     onKeyEnter(fn) {
         this.eventEnter = fn;
+    }
+    
+    keyCtrlC() {
+        this.term.write('^C\r\n');
+        this.eventCtrlC();
+    }
+
+    eventCtrlC() {
+        console.log('eventCtrlC');
+    }
+
+    onKeyCtrlC(fn) {
+        this.eventCtrlC = fn;
     }
 
     keyPressed(data) {

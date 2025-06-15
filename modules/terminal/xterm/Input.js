@@ -11,6 +11,10 @@ export class Input {
         this.terminal.keyboard.onKeyEnter(() => {
             this.terminal.sendCommand();
         })
+        
+        this.terminal.keyboard.onKeyCtrlC(() => {
+            this.handleCtrlC();
+        })
 
         this.terminal.keyboard.onkeyPressed((data, position) => {
             this.charAddAt(data, position)
@@ -34,6 +38,17 @@ export class Input {
         this.terminal.keyboard.onKeyTab(() => {
             this.handleTabCompletion();
         })
+    }
+    
+    handleCtrlC() {
+        // Vider la ligne de commande actuelle
+        this.terminal.inputStr = '';
+        
+        // Réinitialiser la position du curseur
+        this.terminal.keyboard.updatePosition(this.terminal.inputStr);
+        
+        // Afficher un nouveau prompt (comme dans un vrai terminal bash)
+        this.terminal.showPrompt();
     }
 
     charRemoveAt(position) {
