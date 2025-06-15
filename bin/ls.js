@@ -1,21 +1,23 @@
-// bin/ls.js - Commande ls (list) isolée avec support des couleurs
-// Équivalent de /bin/ls sous Debian avec coloration
+// bin/ls.js - Commande ls modernisée avec FileSystemService
+// Équivalent de /bin/ls sous Debian avec gestion des permissions
 
-import { resolvePath } from '../modules/filesystem.js';
+import { 
+    FileSystemService,
+    PermissionDeniedError,
+    FileNotFoundError,
+    NotDirectoryError
+} from '../modules/filesystem/index.js';
 
 /**
- * Commande ls - Liste le contenu d'un répertoire avec couleurs
+ * Commande ls - Liste le contenu d'un répertoire avec vérification des permissions
  * @param {Array} args - Arguments de la commande
- * @param {Object} context - Contexte (fileSystem, currentPath, peut contenir addLine personnalisé)
+ * @param {Object} context - Contexte (fileSystem, currentPath, terminal, etc.)
  */
 export function cmdLs(args, context) {
-    
-    
-    const { fileSystem, getCurrentPath } = context;
-    const currentPath = getCurrentPath();
-    
+    const fs = new FileSystemService(context);
     const term = context.terminal;
-    // Utiliser les fonctions du contexte si disponibles, sinon celles par défaut
+    
+    // Fonctions de sortie
     const outputFn = context?.addLine || (str => { term.write(`${str}\r\n`) });
     const errorFn = context?.showError || (str => { term.write(`${str}\r\n`) });
     
@@ -36,136 +38,168 @@ export function cmdLs(args, context) {
         return true;
     });
     
-    const lsPath = pathArgs.length > 0 ? resolvePath(pathArgs[0], currentPath) : currentPath;
+    // Déterminer le répertoire à lister
+    const targetPath = pathArgs.length > 0 ? pathArgs[0] : context.getCurrentPath();
     
-    if (!fileSystem[lsPath]) {
-        errorFn(`ls: ${pathArgs[0] || lsPath}: Dossier introuvable`);
-        return;
-    }
-    
-    if (fileSystem[lsPath].type !== 'dir') {
-        errorFn(`ls: ${pathArgs[0] || ''}: N'est pas un dossier`);
-        return;
-    }
-
-    // Récupérer tous les éléments du répertoire
-    const items = Object.keys(fileSystem).filter(path => {
-        if (path === lsPath) return false;
-        const prefix = lsPath === '/' ? '/' : lsPath + '/';
-        if (!path.startsWith(prefix)) return false;
-        const relativePath = path.substring(prefix.length);
-        if (relativePath.includes('/')) return false;
+    try {
+        // ✅ FileSystemService vérifie automatiquement :
+        // - Existence du répertoire 
+        // - Permissions de lecture (r) sur le répertoire
+        // - Permissions de traverse (x) sur tout le chemin d'accès
+        const entries = fs.listDirectory(targetPath);
         
-        // Filtrer les fichiers/dossiers cachés (commençant par .) si -a n'est pas utilisé
-        const fileName = path.split('/').pop();
-        if (!showAll && fileName.startsWith('.')) {
-            return false;
+        // Traiter les entrées récupérées
+        let allItems = entries.map(entry => ({
+            name: entry.name,
+            path: entry.path,
+            type: entry.type,
+            entry: entry.entry,
+            isSpecial: false
+        }));
+        
+        // Filtrer les fichiers cachés si -a n'est pas utilisé
+        if (!showAll) {
+            allItems = allItems.filter(item => !item.name.startsWith('.'));
         }
         
-        return true;
-    });
-
-    // Ajouter les entrées spéciales . et .. si option -a
-    let allItems = [...items];
-    if (showAll) {
-        // Créer les entrées . et .. 
-        const currentDir = {
-            path: lsPath,
-            isSpecial: true,
-            name: '.',
-            ...fileSystem[lsPath]
-        };
+        // Ajouter les entrées spéciales . et .. si option -a
+        if (showAll) {
+            try {
+                // Obtenir l'entrée du répertoire courant
+                const currentDirEntry = fs.getFile(targetPath, 'read');
+                const currentItem = {
+                    name: '.',
+                    path: targetPath,
+                    type: 'dir',
+                    entry: currentDirEntry,
+                    isSpecial: true
+                };
+                
+                // Obtenir l'entrée du répertoire parent
+                const parentPath = getParentPath(targetPath);
+                try {
+                    const parentDirEntry = fs.getFile(parentPath, 'read');
+                    const parentItem = {
+                        name: '..',
+                        path: parentPath,
+                        type: 'dir',
+                        entry: parentDirEntry,
+                        isSpecial: true
+                    };
+                    
+                    allItems.unshift(currentItem, parentItem);
+                } catch (error) {
+                    // Si on ne peut pas lire le parent, ajouter juste .
+                    allItems.unshift(currentItem);
+                }
+            } catch (error) {
+                // Si on ne peut pas lire le répertoire courant, continuer sans . et ..
+            }
+        }
         
-        const parentPath = lsPath === '/' ? '/' : lsPath.split('/').slice(0, -1).join('/') || '/';
-        const parentDir = {
-            path: parentPath,
-            isSpecial: true, 
-            name: '..',
-            ...fileSystem[parentPath]
-        };
+        // Si le répertoire est vide, ne rien afficher (comportement Linux standard)
+        if (allItems.length === 0) {
+            return;
+        }
         
-        allItems.unshift(currentDir, parentDir);
-    }
-
-    // CORRECTION PRINCIPALE : Si le dossier est vide et pas d'option -a, ne rien afficher
-    if (allItems.length === 0) {
-        return; // Sortir silencieusement comme le vrai ls
-    }
-
-    if (longFormat) {
-        // Calculer et afficher le total en premier
-        const total = calculateTotal(allItems, fileSystem, humanReadable);
-        outputFn(`total ${total}`, 'info');
+        if (longFormat) {
+            // Calculer et afficher le total en premier
+            const total = calculateTotal(allItems, humanReadable);
+            outputFn(`total ${total}`, 'info');
+            
+            // Format détaillé ls -l
+            showLongFormat(allItems, humanReadable, outputFn);
+        } else {
+            // Format simple ls (plusieurs colonnes)
+            showSimpleFormat(allItems, outputFn);
+        }
         
-        // Format détaillé ls -l
-        showLongFormat(allItems, fileSystem, humanReadable, outputFn);
-    } else {
-        // Format simple ls (plusieurs colonnes)
-        showSimpleFormat(allItems, fileSystem, outputFn);
+    } catch (error) {
+        // ✅ Gestion moderne des erreurs avec types spécifiques
+        if (error instanceof FileNotFoundError) {
+            errorFn(`ls: ${targetPath}: Dossier introuvable`);
+        } else if (error instanceof NotDirectoryError) {
+            errorFn(`ls: ${targetPath}: N'est pas un dossier`);
+        } else if (error instanceof PermissionDeniedError) {
+            errorFn(`ls: ${targetPath}: Permission refusée`);
+        } else {
+            // Erreur inattendue
+            errorFn(`ls: ${targetPath}: ${error.message}`);
+        }
     }
+}
+
+/**
+ * Obtient le chemin du répertoire parent
+ * @param {string} path - Chemin du fichier
+ * @returns {string} - Chemin du parent
+ */
+function getParentPath(path) {
+    if (path === '/') return '/';
+    const lastSlash = path.lastIndexOf('/');
+    return lastSlash === 0 ? '/' : path.substring(0, lastSlash);
 }
 
 /**
  * Calcule le total des blocs utilisés
  * @param {Array} items - Liste des éléments
- * @param {Object} fileSystem - Système de fichiers
  * @param {boolean} humanReadable - Format human-readable
  * @returns {string} - Total formaté
  */
-function calculateTotal(items, fileSystem, humanReadable) {
+function calculateTotal(items, humanReadable) {
     let totalSize = 0;
     
     items.forEach(item => {
-        if (item.isSpecial) {
-            // Pour . et .., utiliser la taille de l'item lui-même
-            totalSize += item.size || 4096;
-        } else {
-            const fsItem = fileSystem[item];
-            totalSize += fsItem.size || (fsItem.type === 'dir' ? 4096 : 0);
-        }
+        totalSize += item.entry.size || (item.type === 'dir' ? 4096 : 0);
     });
     
     // Convertir en blocs de 1K (comme le vrai ls)
     const blocks = Math.ceil(totalSize / 1024);
     
     if (humanReadable) {
-        // En mode human-readable, toujours afficher l'unité K
-        return blocks + 'K';
+        return formatHumanReadable(totalSize);
     }
     
     return blocks.toString();
 }
 
 /**
- * Affiche le format simple (noms seulement, sur plusieurs colonnes) avec couleurs
+ * Formate une taille en format human-readable
+ * @param {number} size - Taille en octets
+ * @returns {string} - Taille formatée
+ */
+function formatHumanReadable(size) {
+    const units = ['B', 'K', 'M', 'G', 'T'];
+    let unitIndex = 0;
+    let value = size;
+    
+    while (value >= 1024 && unitIndex < units.length - 1) {
+        value /= 1024;
+        unitIndex++;
+    }
+    
+    if (unitIndex === 0) {
+        return `${value}${units[unitIndex]}`;
+    } else {
+        return `${value.toFixed(1)}${units[unitIndex]}`;
+    }
+}
+
+/**
+ * Affiche le format simple (noms seulement) avec couleurs
  * @param {Array} items - Liste des éléments
- * @param {Object} fileSystem - Système de fichiers
  * @param {Function} outputFn - Fonction d'affichage
  */
-function showSimpleFormat(items, fileSystem, outputFn) {
-    // CORRECTION : Vérifier qu'il y a bien des éléments à afficher
+function showSimpleFormat(items, outputFn) {
     if (items.length === 0) {
-        return; // Ne rien afficher si la liste est vide
+        return;
     }
 
-    // Créer une ligne avec les noms colorés
-    const coloredNames = items.map(item => {
-        let name, type;
-        
-        if (item.isSpecial) {
-            name = item.name;
-            type = 'dir';
-        } else {
-            name = item.split('/').pop();
-            type = fileSystem[item].type;
-        }
-        
-        // Retourner un objet avec le nom et le type pour le tri
-        return { name, type, original: item };
-    })
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map(item => {
-        // Déterminer la classe CSS selon le type
+    // Trier les éléments par nom
+    const sortedItems = [...items].sort((a, b) => a.name.localeCompare(b.name));
+    
+    // Créer une ligne avec les noms formatés
+    const formattedNames = sortedItems.map(item => {
         if (item.type === 'dir') {
             return `${item.name}/`; // Ajouter / pour les dossiers
         } else {
@@ -173,104 +207,93 @@ function showSimpleFormat(items, fileSystem, outputFn) {
         }
     });
     
-    // CORRECTION : Vérifier encore une fois avant d'afficher
-    if (coloredNames.length > 0) {
-        // Afficher chaque élément avec sa couleur appropriée
-        const line = coloredNames.join('  ');
-        outputFn(line);
-    }
+    // Afficher en une ligne séparée par des espaces
+    const line = formattedNames.join('  ');
+    outputFn(line);
 }
 
 /**
  * Affiche le format détaillé ls -l avec couleurs
  * @param {Array} items - Liste des éléments
- * @param {Object} fileSystem - Système de fichiers
  * @param {boolean} humanReadable - Format human-readable
  * @param {Function} outputFn - Fonction d'affichage
  */
-function showLongFormat(items, fileSystem, humanReadable, outputFn) {
-    // Trier les éléments (. et .. en premier)
-    const sortedItems = items.sort((a, b) => {
-        if (a.isSpecial && b.isSpecial) {
-            return a.name.localeCompare(b.name);
-        }
-        if (a.isSpecial) return -1;
-        if (b.isSpecial) return 1;
-        return a.localeCompare(b);
+function showLongFormat(items, humanReadable, outputFn) {
+    // Trier les éléments (. et .. en premier, puis alphabétique)
+    const sortedItems = [...items].sort((a, b) => {
+        if (a.isSpecial && !b.isSpecial) return -1;
+        if (!a.isSpecial && b.isSpecial) return 1;
+        if (a.name === '.' && b.name === '..') return -1;
+        if (a.name === '..' && b.name === '.') return 1;
+        return a.name.localeCompare(b.name);
     });
     
     sortedItems.forEach(item => {
-        let fsItem, name;
+        const entry = item.entry;
+        const permissions = entry.permissions || '-rw-r--r--';
+        const links = entry.links || 1;
+        const owner = entry.owner || 'root';
+        const group = entry.group || 'root';
+        const size = formatSize(entry.size || 0, humanReadable);
+        const date = formatDate(entry.modified || new Date());
         
-        if (item.isSpecial) {
-            fsItem = item;
-            name = item.name;
-        } else {
-            fsItem = fileSystem[item];
-            name = item.split('/').pop();
+        let displayName = item.name;
+        let className = '';
+        
+        // Déterminer la classe CSS selon le type
+        if (item.type === 'dir') {
+            displayName += '/';
+            className = 'directory';
         }
         
-        // Utiliser les vraies métadonnées ou valeurs par défaut
-        const permissions = fsItem.permissions || (fsItem.type === 'dir' ? 'drwxr-xr-x' : '-rw-r--r--');
-        const links = fsItem.links?.toString() || (fsItem.type === 'dir' ? '2' : '1');
-        const owner = fsItem.owner || 'root';
-        const group = fsItem.group || 'root';
+        // Construire la ligne format ls -l
+        const line = `${permissions} ${links.toString().padStart(3)} ${owner} ${group} ${size.padStart(8)} ${date} ${displayName}`;
         
-        // Formater la taille
-        let size = fsItem.size !== undefined ? fsItem.size : (fsItem.type === 'dir' ? 4096 : 0);
-        let sizeStr;
-        
-        if (humanReadable) {
-            sizeStr = formatHumanReadable(size);
-        } else {
-            sizeStr = size.toString();
-        }
-        
-        // Utiliser la vraie date de modification
-        const modDate = fsItem.modified ? new Date(fsItem.modified) : new Date();
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                           'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const month = monthNames[modDate.getMonth()];
-        const day = modDate.getDate().toString().padStart(2, ' ');
-        const time = modDate.toTimeString().substr(0, 5);
-        
-        // Ajouter / pour les dossiers
-        const displayName = fsItem.type === 'dir' ? name + '/' : name;
-        
-        // Format détaillé avec vraies données
-        const line = `${permissions} ${links.padStart(2)} ${owner} ${group} ${sizeStr.padStart(4)} ${month} ${day} ${time} ${displayName}`;
-        
-        // Utiliser la classe appropriée selon le type
-        const cssClass = fsItem.type === 'dir' ? 'directory' : '';
-        outputFn(line, cssClass);
+        outputFn(line, className);
     });
 }
 
 /**
- * Formate une taille en format human-readable
- * @param {number} bytes - Taille en bytes
- * @returns {string} - Taille formatée (K, M, G)
+ * Formate une taille selon les options
+ * @param {number} size - Taille en octets
+ * @param {boolean} humanReadable - Format human-readable
+ * @returns {string} - Taille formatée
  */
-function formatHumanReadable(bytes) {
-    if (bytes === 0) return '0';
-    
-    const units = ['', 'K', 'M', 'G', 'T'];
-    let size = bytes;
-    let unitIndex = 0;
-    
-    while (size >= 1024 && unitIndex < units.length - 1) {
-        size /= 1024;
-        unitIndex++;
-    }
-    
-    if (unitIndex === 0) {
+function formatSize(size, humanReadable) {
+    if (humanReadable) {
+        return formatHumanReadable(size);
+    } else {
         return size.toString();
     }
+}
+
+/**
+ * Formate une date pour l'affichage ls -l
+ * @param {Date} date - Date à formater
+ * @returns {string} - Date formatée
+ */
+function formatDate(date) {
+    if (!date || !(date instanceof Date)) {
+        date = new Date();
+    }
     
-    // Arrondir à 1 décimale si nécessaire
-    if (size < 10) {
-        return size.toFixed(1) + units[unitIndex];
+    const now = new Date();
+    const sixMonthsAgo = new Date(now.getTime() - (6 * 30 * 24 * 60 * 60 * 1000));
+    
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    const month = months[date.getMonth()];
+    const day = date.getDate().toString().padStart(2);
+    
+    if (date > sixMonthsAgo) {
+        // Fichier récent : afficher l'heure
+        const hours = date.getHours().toString().padStart(2, '0');
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        return `${month} ${day} ${hours}:${minutes}`;
     } else {
-        return Math.round(size) + units[unitIndex];
+        // Fichier ancien : afficher l'année
+        const year = date.getFullYear();
+        return `${month} ${day}  ${year}`;
     }
 }

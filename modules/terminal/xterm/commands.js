@@ -12,6 +12,7 @@ import { cmdUseradd } from "../../../bin/useradd.js";
 import { cmdGroups, cmdId, cmdWhoami } from "../../../bin/user-info.js";
 import { cmdChmod } from "../../../bin/chmod.js";
 import { cmdChown } from "../../../bin/chown.js";
+import { cmdUserdel } from "../../../bin/userdel.js";
 
 export function cmd(cmd, args) {
     if (cmd === 'cd') {
@@ -61,6 +62,9 @@ export function cmd(cmd, args) {
     }
     else if (cmd === 'useradd') {
         cmdUseradd(args, this.context);
+    }
+    else if (cmd === 'userdel') {
+        cmdUserdel(args, this.context);
     }
     else if (cmd === 'exit') {
         cmdExit(args, this.context);

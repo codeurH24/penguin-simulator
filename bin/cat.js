@@ -1,24 +1,29 @@
-// bin/cat.js - Commande cat (concatenate) isolée - CORRIGER CETTE PARTIE
-// Équivalent de /bin/cat sous Debian
+// bin/cat.js - Commande cat modernisée avec FileSystemService
+// Équivalent de /bin/cat sous Debian avec gestion des permissions
 
-import { resolvePath } from '../modules/filesystem.js';
+import { 
+    FileSystemService,
+    PermissionDeniedError,
+    FileNotFoundError,
+    IsDirectoryError
+} from '../modules/filesystem/index.js';
 
 /**
  * Commande cat - Affiche et concatène le contenu de fichiers
  * @param {Array} args - Arguments de la commande
- * @param {Object} context - Contexte (fileSystem, currentPath, peut contenir addLine personnalisé)
+ * @param {Object} context - Contexte (fileSystem, currentPath, terminal, etc.)
  */
 export function cmdCat(args, context) {
-
-    const { fileSystem, getCurrentPath } = context;
-    const currentPath = getCurrentPath();
-
+    const fs = new FileSystemService(context);
     const term = context.terminal;
-    // Utiliser addLine et showError du contexte si disponibles, sinon ceux par défaut
-    let outputFn = context?.addLine || (str => {
+    
+    // Fonctions de sortie
+    const outputFn = context?.addLine || (str => {
         term.write(str.replace(/\n/g, '\r\n'));
     });
-    const errorFn = context?.showError || (str => { term.write(`${str}\r\n`) });
+    const errorFn = context?.showError || (str => { 
+        term.write(`${str}\r\n`) 
+    });
 
     // Si aucun argument, lire depuis stdin (simulation)
     if (args.length === 0) {
@@ -53,56 +58,71 @@ export function cmdCat(args, context) {
 
     // Traiter chaque fichier
     fileArgs.forEach((fileName, fileIndex) => {
-        const filePath = resolvePath(fileName, currentPath);
+        try {
+            // ✅ Plus de vérification manuelle - FileSystemService gère tout !
+            const content = fs.fileSystem.getContent(fileName);
+            
+            if (content) {
+                // Si aucune option spéciale, afficher le contenu brut
+                if (!showLineNumbers && !showEnds && !showNonPrintable) {
+                    outputFn(content);
+                } else {
+                    // Appliquer les options
+                    let processedContent = content;
 
-        if (!fileSystem[filePath]) {
-            errorFn(`cat: ${fileName}: Fichier introuvable`);
-            return;
-        }
-
-        const file = fileSystem[filePath];
-        if (file.type !== 'file') {
-            errorFn(`cat: ${fileName}: N'est pas un fichier`);
-            return;
-        }
-
-        // Mettre à jour la date d'accès
-        file.accessed = new Date();
-
-        // Obtenir le contenu
-        const content = file.content || '';
-
-
-        if (content) {
-            // Si aucune option spéciale, afficher le contenu brut
-            if (!showLineNumbers && !showEnds && !showNonPrintable) {
-                outputFn(content);
-            } else {
-                // Appliquer les options
-                let processedContent = content;
-
-                if (showNonPrintable) {
-                    processedContent = formatNonPrintable(processedContent);
-                }
-
-                if (showEnds) {
-                    processedContent = processedContent.replace(/\n/g, '$\n');
-                    if (processedContent.endsWith('$\n')) {
-                        processedContent = processedContent.slice(0, -2) + '$';
+                    if (showNonPrintable) {
+                        processedContent = formatNonPrintable(processedContent);
                     }
-                }
 
-                if (showLineNumbers) {
-                    const lines = processedContent.split('\n');
-                    processedContent = lines.map((line, i) =>
-                        line ? `${(i + 1).toString().padStart(6)}  ${line}` : line
-                    ).join('\n');
-                }
+                    if (showEnds) {
+                        processedContent = processedContent.replace(/\n/g, '$\n');
+                        if (processedContent.endsWith('$\n')) {
+                            processedContent = processedContent.slice(0, -2) + '$';
+                        }
+                    }
 
-                outputFn(processedContent);
+                    if (showLineNumbers) {
+                        const lines = processedContent.split('\n');
+                        processedContent = lines.map((line, i) =>
+                            line ? `${(lineNumber + i).toString().padStart(6)}  ${line}` : line
+                        ).join('\n');
+                        lineNumber += lines.length;
+                    }
+
+                    outputFn(processedContent);
+                }
             }
-        } else {
-            // Fichier vide - rien à afficher
+            // Fichier vide - rien à afficher (comportement correct)
+            
+        } catch (error) {
+            // ✅ Gestion moderne des erreurs avec types spécifiques
+            if (error instanceof FileNotFoundError) {
+                errorFn(`cat: ${fileName}: Fichier introuvable`);
+            } else if (error instanceof IsDirectoryError) {
+                errorFn(`cat: ${fileName}: N'est pas un fichier`);
+            } else if (error instanceof PermissionDeniedError) {
+                errorFn(`cat: ${fileName}: Permission refusée`);
+            } else {
+                // Erreur inattendue
+                errorFn(`cat: ${fileName}: ${error.message}`);
+            }
         }
+    });
+}
+
+/**
+ * Formate les caractères non-imprimables pour l'option -v
+ * @param {string} content - Contenu à formater
+ * @returns {string} - Contenu avec caractères non-imprimables visibles
+ */
+function formatNonPrintable(content) {
+    return content.replace(/[\x00-\x08\x0B-\x1F\x7F]/g, char => {
+        const code = char.charCodeAt(0);
+        if (code === 9) return char; // Préserver les tabs
+        if (code === 10) return char; // Préserver les newlines
+        if (code === 13) return char; // Préserver les retours chariot
+        if (code < 32) return `^${String.fromCharCode(code + 64)}`;
+        if (code === 127) return '^?';
+        return char;
     });
 }
