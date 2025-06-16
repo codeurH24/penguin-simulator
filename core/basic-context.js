@@ -46,7 +46,7 @@ export function createDefaultContext() {
             groups: ['root']
         }
     };
-    
+
     try {
         // Créer les répertoires système de base avec permissions réalistes Linux
 
@@ -66,6 +66,11 @@ export function createDefaultContext() {
         const etcEntry = createDirEntry('root', 'root', 'drwxr-xr-x');
         context.fileSystem['/etc'] = etcEntry;
 
+        // 5. Répertoire /tmp – répertoire temporaire accessible à tous avec sticky bit (1777)
+        const tmpEntry = createDirEntry('root', 'root', 'drwxrwxrwt');
+        context.fileSystem['/tmp'] = tmpEntry;
+
+
         console.log('✅ Contexte par défaut : fichiers système créés avec succès');
 
     } catch (error) {
@@ -73,7 +78,7 @@ export function createDefaultContext() {
         console.error('📍 Stack trace:', error.stack);
         throw new Error(`Échec de l'initialisation du système de fichiers: ${error.message}`);
     }
-    
+
     return addContextMethods(context);
 }
 
@@ -91,7 +96,7 @@ export async function createAndSaveContext(testMode = false) {
 
     // Initialiser les fichiers système (passwd, shadow, group, etc.)
     initUserSystem(context.fileSystem, () => { });
-    
+
     if (!testMode) {
         // Sauvegarder seulement les données, pas les méthodes
         const dataToSave = {
