@@ -2,6 +2,7 @@ import { runTestSuite } from '../../lib/runner.js';
 import { rmBasicTests } from '../../specs/commands/rm/basic.test.js';
 import { rmOptionsTests } from '../../specs/commands/rm/options.test.js';
 import { rmWildcardSubdirectoryTests } from '../../specs/commands/rm/wildcard-subdirectory.test.js';
+import { rmPermissionsTests } from '../../specs/commands/rm/permissions.test.js';
 
 export function stages(suites) {
 
@@ -19,4 +20,9 @@ export function stages(suites) {
     console.log('\n🎯 Tests des wildcards sous-dossiers de rm...');
     const rmWildcardResults = runTestSuite('rm - Tests wildcards sous-dossiers', rmWildcardSubdirectoryTests);
     suites.push(rmWildcardResults);
+    
+    // Tests des permissions pour rm
+    console.log('\n🔒 Tests des permissions de rm...');
+    const rmPermissionsResults = runTestSuite('rm - Tests des permissions', rmPermissionsTests);
+    suites.push(rmPermissionsResults);
 }

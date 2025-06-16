@@ -77,6 +77,12 @@ export const assert = {
         }
     },
 
+    isNotNull(value, message) {
+        if (value === null || value === undefined) {
+            throw new Error(`Assertion échouée: ${message}`);
+        }
+    },
+
     /**
      * Vérifie que deux valeurs sont différentes
      */

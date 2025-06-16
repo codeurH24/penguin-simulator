@@ -1,7 +1,8 @@
-// bin/rm.js - Commande rm (remove) isolée avec support des wildcards - Version améliorée
-// Équivalent de /bin/rm sous Debian avec globbing
+// bin/rm.js - Commande rm (remove) avec support des permissions et wildcards
+// Équivalent de /bin/rm sous Debian avec système de permissions complet
 
 import { resolvePath } from '../modules/filesystem.js';
+import { FileSystemService, PermissionDeniedError, FileNotFoundError } from '../modules/filesystem/index.js';
 
 /**
  * Expanse un pattern en liste de fichiers matchants (globbing)
@@ -51,7 +52,70 @@ function expandGlob(pattern, currentPath, fileSystem) {
 }
 
 /**
- * Commande rm - Supprime des fichiers et dossiers avec support des wildcards
+ * Vérifie si l'utilisateur peut supprimer un fichier/dossier
+ * @param {string} fullPath - Chemin complet du fichier
+ * @param {Object} fileSystemService - Service de filesystem
+ * @param {boolean} isRecursive - Si c'est une suppression récursive
+ * @returns {Object} - {allowed: boolean, reason?: string}
+ */
+function canDelete(fullPath, fileSystemService, isRecursive = false) {
+    const user = fileSystemService.user;
+    
+    // Root peut toujours supprimer
+    if (user && user.uid === 0) {
+        return { allowed: true, reason: 'Root user' };
+    }
+
+    try {
+        // Vérifier que le fichier existe et qu'on peut y accéder
+        const fileEntry = fileSystemService.getFile(fullPath, 'read');
+        
+        // Pour supprimer un fichier/dossier, il faut permission d'écriture dans le répertoire parent
+        const parentPath = fullPath.substring(0, fullPath.lastIndexOf('/')) || '/';
+        const parentPermCheck = fileSystemService.permissionsSystem.hasPermission(
+            parentPath, 
+            user, 
+            'write'
+        );
+        
+        if (!parentPermCheck.allowed) {
+            return { 
+                allowed: false, 
+                reason: `Permission denied: cannot write to parent directory '${parentPath}'` 
+            };
+        }
+
+        // Pour suppression récursive d'un dossier, il faut aussi pouvoir le lire
+        if (isRecursive && fileEntry.type === 'dir') {
+            const readPermCheck = fileSystemService.permissionsSystem.hasPermission(
+                fullPath, 
+                user, 
+                'read'
+            );
+            
+            if (!readPermCheck.allowed) {
+                return { 
+                    allowed: false, 
+                    reason: `Permission denied: cannot read directory '${fullPath}'` 
+                };
+            }
+        }
+
+        return { allowed: true };
+        
+    } catch (error) {
+        if (error instanceof FileNotFoundError) {
+            return { allowed: false, reason: 'File not found' };
+        }
+        if (error instanceof PermissionDeniedError) {
+            return { allowed: false, reason: error.message };
+        }
+        return { allowed: false, reason: error.message };
+    }
+}
+
+/**
+ * Commande rm - Supprime des fichiers et dossiers avec support des wildcards et permissions
  * @param {Array} args - Arguments de la commande
  * @param {Object} context - Contexte (fileSystem, getCurrentPath, saveFileSystem)
  */
@@ -62,6 +126,15 @@ export function cmdRm(args, context) {
     // Utiliser les fonctions du contexte si disponibles, sinon celles par défaut
     const errorFn = context?.showError || (str => { term.write(`${str}\r\n`) });
     const successFn = context?.showSuccess || (str => { term.write(`${str}\r\n`) });
+    
+    // Créer une instance du FileSystemService pour les vérifications de permissions
+    let fileSystemService = null;
+    try {
+        fileSystemService = new FileSystemService(context);
+    } catch (error) {
+        // Fallback vers l'ancien système si FileSystemService n'est pas disponible
+        console.warn('FileSystemService not available, falling back to legacy mode');
+    }
     
     // Obtenir le chemin courant via la méthode
     const currentPath = getCurrentPath();
@@ -142,23 +215,65 @@ export function cmdRm(args, context) {
         // Vérifier si c'est un dossier
         if (item.type === 'dir') {
             // rm ne supprime JAMAIS les dossiers sans -r, même s'ils sont vides
-            // (pour supprimer un dossier vide, il faut utiliser rmdir)
             if (!recursive) {
                 errorFn(`rm: impossible de supprimer '${fileName}': est un répertoire`);
                 return;
             }
+        }
 
-            // Supprimer récursivement avec -r
+        // Vérifier les permissions si FileSystemService est disponible
+        if (fileSystemService) {
+            const permissionCheck = canDelete(fullPath, fileSystemService, recursive && item.type === 'dir');
+            
+            if (!permissionCheck.allowed) {
+                if (!force) {
+                    // Messages d'erreur en français pour cohérence avec les tests
+                    if (permissionCheck.reason.includes('Permission denied')) {
+                        errorFn(`rm: impossible de supprimer '${fileName}': Permission refusée`);
+                    } else {
+                        errorFn(`rm: impossible de supprimer '${fileName}': ${permissionCheck.reason}`);
+                    }
+                }
+                // Avec -f, on ne fait rien (silencieux) mais on ne supprime pas
+                return;
+            }
+        }
+
+        // Procéder à la suppression
+        if (item.type === 'dir' && recursive) {
+            // Supprimer récursivement
             const toDelete = Object.keys(fileSystem).filter(path => {
                 return path === fullPath || path.startsWith(fullPath + '/');
             });
 
+            // Vérifier les permissions pour tous les sous-éléments si nécessaire
+            if (fileSystemService) {
+                let canDeleteAll = true;
+                for (const subPath of toDelete) {
+                    const subItem = fileSystem[subPath];
+                    const subPermCheck = canDelete(subPath, fileSystemService, subItem.type === 'dir');
+                    if (!subPermCheck.allowed) {
+                        if (!force) {
+                            const relativePath = subPath.replace(fullPath, fileName);
+                            errorFn(`rm: impossible de supprimer '${relativePath}': Permission refusée`);
+                        }
+                        canDeleteAll = false;
+                        break;
+                    }
+                }
+                
+                if (!canDeleteAll) {
+                    return;
+                }
+            }
+
+            // Supprimer tous les éléments
             toDelete.forEach(path => {
                 delete fileSystem[path];
             });
 
             deletedCount++;
-        } else {
+        } else if (item.type === 'file') {
             // C'est un fichier
             delete fileSystem[fullPath];
             deletedCount++;
@@ -191,20 +306,4 @@ export function cmdRm(args, context) {
             }
         }
     }
-}
-
-/**
- * Teste si un nom de fichier correspond à un pattern
- * @param {string} filename - Nom du fichier
- * @param {string} pattern - Pattern avec wildcards
- * @returns {boolean} - true si le fichier correspond au pattern
- */
-function matchesPattern(filename, pattern) {
-    const regexPattern = pattern
-        .replace(/\./g, '\\.')    // Échapper les points
-        .replace(/\*/g, '.*')     // * devient .*
-        .replace(/\?/g, '.');     // ? devient .
-    
-    const regex = new RegExp('^' + regexPattern + '$');
-    return regex.test(filename);
 }
