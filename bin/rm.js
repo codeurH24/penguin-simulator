@@ -53,6 +53,7 @@ function expandGlob(pattern, currentPath, fileSystem) {
 
 /**
  * Vérifie si l'utilisateur peut supprimer un fichier/dossier
+ * Prend en compte le sticky bit et toutes les règles de permissions Linux
  * @param {string} fullPath - Chemin complet du fichier
  * @param {Object} fileSystemService - Service de filesystem
  * @param {boolean} isRecursive - Si c'est une suppression récursive
@@ -61,7 +62,7 @@ function expandGlob(pattern, currentPath, fileSystem) {
 function canDelete(fullPath, fileSystemService, isRecursive = false) {
     const user = fileSystemService.user;
     
-    // Root peut toujours supprimer
+    // Root peut toujours supprimer (sauf contraintes système spéciales)
     if (user && user.uid === 0) {
         return { allowed: true, reason: 'Root user' };
     }
@@ -70,8 +71,18 @@ function canDelete(fullPath, fileSystemService, isRecursive = false) {
         // Vérifier que le fichier existe et qu'on peut y accéder
         const fileEntry = fileSystemService.getFile(fullPath, 'read');
         
-        // Pour supprimer un fichier/dossier, il faut permission d'écriture dans le répertoire parent
+        // Obtenir le répertoire parent
         const parentPath = fullPath.substring(0, fullPath.lastIndexOf('/')) || '/';
+        const parentEntry = fileSystemService.context.fileSystem[parentPath];
+        
+        if (!parentEntry) {
+            return { 
+                allowed: false, 
+                reason: `Parent directory '${parentPath}' not found` 
+            };
+        }
+
+        // Vérifier la permission d'écriture dans le répertoire parent
         const parentPermCheck = fileSystemService.permissionsSystem.hasPermission(
             parentPath, 
             user, 
@@ -83,6 +94,23 @@ function canDelete(fullPath, fileSystemService, isRecursive = false) {
                 allowed: false, 
                 reason: `Permission denied: cannot write to parent directory '${parentPath}'` 
             };
+        }
+
+        // ✅ NOUVEAU: Vérification du sticky bit
+        if (hasStickyBit(parentEntry.permissions)) {
+            // Le répertoire parent a le sticky bit (comme /tmp)
+            
+            // Dans un répertoire avec sticky bit, l'utilisateur ne peut supprimer que :
+            // 1. Les fichiers qu'il possède
+            // 2. Les répertoires qu'il possède
+            // 3. Root peut tout supprimer (déjà géré au début)
+            
+            if (!isFileOwner(fileEntry, user)) {
+                return {
+                    allowed: false,
+                    reason: `Permission denied: sticky bit prevents deletion of '${fullPath}' (not owner)`
+                };
+            }
         }
 
         // Pour suppression récursive d'un dossier, il faut aussi pouvoir le lire
@@ -112,6 +140,45 @@ function canDelete(fullPath, fileSystemService, isRecursive = false) {
         }
         return { allowed: false, reason: error.message };
     }
+}
+
+
+/**
+ * ✅ NOUVELLE FONCTION: Vérification spécifique du sticky bit
+ * Utilitaire pour détecter si un répertoire a le sticky bit
+ * @param {string} permissions - Chaîne de permissions (drwxrwxrwt)
+ * @returns {boolean} - true si le sticky bit est activé
+ */
+function hasStickyBit(permissions) {
+    if (!permissions || permissions.length !== 10) {
+        return false;
+    }
+    
+    // Le sticky bit est représenté par 't' ou 'T' en dernière position
+    const lastChar = permissions[9];
+    return lastChar === 't' || lastChar === 'T';
+}
+
+/**
+ * ✅ NOUVELLE FONCTION: Vérification de propriété avec gestion des types
+ * Vérifie si un utilisateur est propriétaire d'un fichier/dossier
+ * @param {Object} fileEntry - Entrée du fichier
+ * @param {Object} user - Utilisateur
+ * @returns {boolean} - true si l'utilisateur est propriétaire
+ */
+function isFileOwner(fileEntry, user) {
+    if (!fileEntry || !user) {
+        return false;
+    }
+    
+    // Gestion des différents formats de propriétaire (string ou number)
+    if (typeof fileEntry.owner === 'string') {
+        return fileEntry.owner === user.username;
+    } else if (typeof fileEntry.owner === 'number') {
+        return fileEntry.owner === user.uid;
+    }
+    
+    return false;
 }
 
 /**

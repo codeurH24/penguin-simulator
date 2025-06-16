@@ -3,6 +3,7 @@ import { rmBasicTests } from '../../specs/commands/rm/basic.test.js';
 import { rmOptionsTests } from '../../specs/commands/rm/options.test.js';
 import { rmWildcardSubdirectoryTests } from '../../specs/commands/rm/wildcard-subdirectory.test.js';
 import { rmPermissionsTests } from '../../specs/commands/rm/permissions.test.js';
+import { rmAdvancedPermissionsTests } from '../../specs/commands/rm/advanced-permissions.test.js';
 
 export function stages(suites) {
 
@@ -25,4 +26,9 @@ export function stages(suites) {
     console.log('\n🔒 Tests des permissions de rm...');
     const rmPermissionsResults = runTestSuite('rm - Tests des permissions', rmPermissionsTests);
     suites.push(rmPermissionsResults);
+
+    // Tests avancés des permissions pour rm
+    console.log('\n🔐 Tests avancés des permissions de rm...');
+    const rmAdvancedResults = runTestSuite('rm - Tests avancés des permissions', rmAdvancedPermissionsTests);
+    suites.push(rmAdvancedResults);
 }
