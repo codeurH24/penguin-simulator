@@ -23,7 +23,7 @@ export function stages(suites) {
     suites.push(touchPermissionsResults);
 
     // Tests de permissions avancées pour touch
-    // console.log('\n🔐 Tests de permissions avancées pour touch...');
-    // const touchAdvancedPermissionsResults = runTestSuite('touch - Permissions avancées', touchAdvancedPermissionsTests);
-    // suites.push(touchAdvancedPermissionsResults);
+    console.log('\n🔐 Tests de permissions avancées pour touch...');
+    const touchAdvancedPermissionsResults = runTestSuite('touch - Permissions avancées', touchAdvancedPermissionsTests);
+    suites.push(touchAdvancedPermissionsResults);
 }
