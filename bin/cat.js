@@ -1,6 +1,7 @@
 // bin/cat.js - Commande cat modernisée avec FileSystemService
 // Équivalent de /bin/cat sous Debian avec gestion des permissions
 
+import { resolvePath } from '../modules/filesystem.js';
 import { 
     FileSystemService,
     PermissionDeniedError,
@@ -59,40 +60,42 @@ export function cmdCat(args, context) {
     // Traiter chaque fichier
     fileArgs.forEach((fileName, fileIndex) => {
         try {
-            // ✅ Plus de vérification manuelle - FileSystemService gère tout !
-            const content = fs.fileSystem.getContent(fileName);
+            // ✅ Résoudre le chemin relatif par rapport au répertoire courant
+            const resolvedPath = resolvePath(fileName, context.getCurrentPath());
             
-            if (content) {
-                // Si aucune option spéciale, afficher le contenu brut
-                if (!showLineNumbers && !showEnds && !showNonPrintable) {
-                    outputFn(content);
-                } else {
-                    // Appliquer les options
-                    let processedContent = content;
+            // ✅ Utilisation correcte de FileSystemService qui gère les permissions
+            const content = fs.fileSystem.getContent(resolvedPath);
+            
+            // Toujours afficher le contenu, même s'il est vide
+            // (comportement standard de cat)
+            if (!showLineNumbers && !showEnds && !showNonPrintable) {
+                // Affichage simple sans options
+                outputFn(content);
+            } else {
+                // Appliquer les options de formatage
+                let processedContent = content;
 
-                    if (showNonPrintable) {
-                        processedContent = formatNonPrintable(processedContent);
-                    }
-
-                    if (showEnds) {
-                        processedContent = processedContent.replace(/\n/g, '$\n');
-                        if (processedContent.endsWith('$\n')) {
-                            processedContent = processedContent.slice(0, -2) + '$';
-                        }
-                    }
-
-                    if (showLineNumbers) {
-                        const lines = processedContent.split('\n');
-                        processedContent = lines.map((line, i) =>
-                            line ? `${(lineNumber + i).toString().padStart(6)}  ${line}` : line
-                        ).join('\n');
-                        lineNumber += lines.length;
-                    }
-
-                    outputFn(processedContent);
+                if (showNonPrintable) {
+                    processedContent = formatNonPrintable(processedContent);
                 }
+
+                if (showEnds) {
+                    processedContent = processedContent.replace(/\n/g, '$\n');
+                    if (processedContent.endsWith('$\n')) {
+                        processedContent = processedContent.slice(0, -2) + '$';
+                    }
+                }
+
+                if (showLineNumbers) {
+                    const lines = processedContent.split('\n');
+                    processedContent = lines.map((line, i) =>
+                        line !== '' ? `${(lineNumber + i).toString().padStart(6)}  ${line}` : line
+                    ).join('\n');
+                    lineNumber += lines.length;
+                }
+
+                outputFn(processedContent);
             }
-            // Fichier vide - rien à afficher (comportement correct)
             
         } catch (error) {
             // ✅ Gestion moderne des erreurs avec types spécifiques

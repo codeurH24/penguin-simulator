@@ -159,9 +159,10 @@ function testCatEmptyFile() {
     // Exécuter cat sur le fichier vide
     cmdCat(['empty.txt'], context);
     
-    // Vérifier qu'aucune sortie n'est générée pour un fichier vide
+    // ✅ CORRIGÉ: cat affiche maintenant toujours le contenu, même vide
     const captures = getCaptures();
-    assert.captureCount(0, 'cat sur fichier vide ne devrait rien capturer');
+    assert.captureCount(1, 'cat sur fichier vide devrait capturer 1 sortie (contenu vide)');
+    assert.equals(captures[0].text, '', 'Le contenu du fichier vide devrait être une chaîne vide');
     
     console.log('✅ cat gère correctement les fichiers vides');
     return true;

@@ -15,11 +15,19 @@ import {
  * Service principal pour la gestion du système de fichiers avec permissions
  */
 export class FileSystemService {
+    
     constructor(context) {
         this.context = context;
-        this.user = context.currentUser;
         this.permissionsSystem = new PermissionsSystem(this);
         this.fileSystem = new FileSystem(this);
+    }
+
+    /**
+     * ✅ Getter dynamique pour l'utilisateur courant
+     * Cela permet au FileSystemService de toujours utiliser l'utilisateur actuel
+     */
+    get user() {
+        return this.context.currentUser;
     }
 
     /**
