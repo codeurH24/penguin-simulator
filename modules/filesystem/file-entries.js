@@ -1,6 +1,3 @@
-// modules/users/file-utils.js
-// Utilitaires pour la création de fichiers et dossiers
-
 /**
  * Crée une entrée de fichier avec métadonnées
  * @param {string} content - Contenu du fichier

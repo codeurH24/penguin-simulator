@@ -17,7 +17,7 @@ export {
 } from './FileSystemExceptions.js';
 
 // Re-export des fonctions utilitaires existantes pour compatibilité
-export { createFileEntry, createDirEntry } from '../users/file-utils.js';
+export { createFileEntry, createDirEntry } from './file-entries.js';
 
 /**
  * Fonction utilitaire pour créer une instance du service

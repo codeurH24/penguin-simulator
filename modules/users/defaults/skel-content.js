@@ -1,11 +1,12 @@
 // modules/users/defaults/skel-content.js
 // Structure par défaut de /etc/skel avec imports modulaires
 
-import { createFileEntry, createDirEntry } from '../file-utils.js';
+import { createFileEntry, createDirEntry } from '../../filesystem/file-entries.js';
 import { DEFAULT_BASHRC_CONTENT } from './skel-files/bashrc-content.js';
 import { DEFAULT_PROFILE_CONTENT } from './skel-files/profile-content.js';
 import { DEFAULT_VIMRC_CONTENT } from './skel-files/vimrc-content.js';
 import { DEFAULT_BASH_LOGOUT_CONTENT } from './skel-files/bash_logout-content.js';
+
 
 /**
  * Crée la structure par défaut de /etc/skel

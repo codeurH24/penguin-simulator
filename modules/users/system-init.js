@@ -1,7 +1,7 @@
 // modules/users/system-init.js
 // Initialisation du système d'utilisateurs
 
-import { createFileEntry } from './file-utils.js';
+import { createFileEntry } from '../filesystem/file-entries.js';
 import { 
     DEFAULT_PASSWD_CONTENT,
     DEFAULT_SHADOW_CONTENT, 

@@ -3,7 +3,7 @@
 
 import { parsePasswdFile, parseGroupFile } from './parsers.js';
 import { copySkelFiles } from './home-dirs.js';
-import { createDirEntry } from './file-utils.js';
+import { createDirEntry } from '../filesystem/file-entries.js';
 
 /**
  * Obtient les informations d'un utilisateur

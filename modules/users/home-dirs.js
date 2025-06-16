@@ -1,8 +1,6 @@
 // modules/users/home-dirs.js
 // Gestion des répertoires home et copie depuis /etc/skel
 
-import { createFileEntry } from './file-utils.js';
-
 /**
  * Copie les fichiers depuis /etc/skel vers le répertoire home d'un utilisateur
  * @param {Object} fileSystem - Système de fichiers

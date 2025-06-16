@@ -1,6 +1,7 @@
-// core/basic-context.js - Récupération basique du contexte depuis IndexedDB
+// modules/filesystem/file-entries.js
+
+import { createDirEntry } from '../modules/filesystem/file-entries.js';
 import { loadData, saveData, isDBReady, openDB } from '../modules/storage.js';
-import { createDirEntry } from '../modules/users/file-utils.js';
 import { initUserSystem, getCurrentUser } from '../modules/users/user.service.js';
 
 /**
