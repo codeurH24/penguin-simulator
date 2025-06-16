@@ -1,5 +1,6 @@
 // core/basic-context.js - Récupération basique du contexte depuis IndexedDB
 import { loadData, saveData, isDBReady, openDB } from '../modules/storage.js';
+import { createDirEntry } from '../modules/users/file-utils.js';
 import { initUserSystem, getCurrentUser } from '../modules/users/user.service.js';
 
 /**
@@ -25,30 +26,12 @@ export function addContextMethods(context) {
 }
 
 /**
- * Crée un contexte par défaut
+ * Crée un contexte par défaut avec permissions réalistes Linux utilisant FileSystemService
  * @returns {Object} - Nouveau contexte avec structure de base
  */
 export function createDefaultContext() {
-    const now = new Date();
-    const dirEntry = {
-        type: 'dir',
-        size: 4096,
-        created: now,
-        modified: now,
-        accessed: now,
-        permissions: 'drwxr-xr-x',
-        owner: 'root',
-        group: 'root',
-        links: 2
-    };
-
     const context = {
-        fileSystem: {
-            '/': dirEntry,
-            '/home': dirEntry,
-            '/root': dirEntry,
-            '/etc': dirEntry
-        },
+        fileSystem: {},
         currentPath: '/root',
         localVariables: {},
         sessionVariables: {},
@@ -62,7 +45,34 @@ export function createDefaultContext() {
             groups: ['root']
         }
     };
+    
+    try {
+        // Créer les répertoires système de base avec permissions réalistes Linux
 
+        // 1. Racine du système (/) - accessible à tous (755)
+        const rootEntry = createDirEntry('root', 'root', 'drwxr-xr-x');
+        context.fileSystem['/'] = rootEntry;
+
+        // 2. Répertoire /home - accessible à tous pour traverser (755)
+        const homeEntry = createDirEntry('root', 'root', 'drwxr-xr-x');
+        context.fileSystem['/home'] = homeEntry;
+
+        // 3. Répertoire /root - PRIVÉ pour root seulement (700)
+        const rootHomeEntry = createDirEntry('root', 'root', 'drwx------');
+        context.fileSystem['/root'] = rootHomeEntry;
+
+        // 4. Répertoire /etc - configuration système accessible (755)
+        const etcEntry = createDirEntry('root', 'root', 'drwxr-xr-x');
+        context.fileSystem['/etc'] = etcEntry;
+
+        console.log('✅ Contexte par défaut : fichiers système créés avec succès');
+
+    } catch (error) {
+        console.error('❌ Erreur lors de la création des répertoires système avec FileSystemService:');
+        console.error('📍 Stack trace:', error.stack);
+        throw new Error(`Échec de l'initialisation du système de fichiers: ${error.message}`);
+    }
+    
     return addContextMethods(context);
 }
 
