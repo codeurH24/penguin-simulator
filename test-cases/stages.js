@@ -1,4 +1,4 @@
-// test-cases/stages.js - Point d'entrée pour tous les stages de tests
+// test-cases/stages.js - Point d'entrée pour tous les stages de tests (MODIFICATION)
 import { stages as commandMkdirStages } from './stages/commands/mkdir.stages.js';
 import { stages as commandLsStages } from './stages/commands/ls.stages.js';
 import { stages as commandTouchStages } from './stages/commands/touch.stages.js';
@@ -14,6 +14,7 @@ import { stages as commandSuStages } from './stages/commands/su.stages.js';
 import { stages as commandExitStages } from './stages/commands/exit.stages.js';
 import { stages as commandChmodStages } from './stages/commands/chmod.stages.js';
 import { stages as commandExportStages } from './stages/commands/export.stages.js';
+import { stages as commandWhoamiStages } from './stages/commands/whoami.stages.js';
 
 export async function stages(suites) {
     commandMkdirStages(suites);
@@ -31,4 +32,5 @@ export async function stages(suites) {
     commandSuStages(suites);
     commandExitStages(suites);
     commandChmodStages(suites);
+    commandWhoamiStages(suites);
 }
