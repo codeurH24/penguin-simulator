@@ -1,10 +1,10 @@
-// bin/user-info.js - Commandes d'information utilisateur (VERSION CORRIGÉE avec context)
-// Équivalents de id, groups sous Debian
+// bin/id.js - Commande id sous Debian
+// Affiche les informations d'identité de l'utilisateur
 
 import { parseGroupFile } from '../modules/users/user.service.js';
 
 /**
- * ✅ CORRECTION: Commande id utilisant context.currentUser
+ * Commande id - Affiche les informations d'identité de l'utilisateur
  * @param {Array} args - Arguments de la commande
  * @param {Object} context - Contexte (fileSystem, currentUser)
  */
@@ -14,7 +14,7 @@ export function cmdId(args, context) {
     const outputFn = context?.addLine || ((str) => { term.write(`${str}\r\n`) });
     const showError = context?.showError || ((str) => { term.write(`${str}\r\n`) });
     
-    // ✅ CORRECTION: Utiliser context.currentUser au lieu de getCurrentUser()
+    // Utiliser context.currentUser au lieu de getCurrentUser()
     const currentUser = context.currentUser;
     if (!currentUser) {
         showError('id: aucun utilisateur connecté');
@@ -81,35 +81,6 @@ export function cmdId(args, context) {
 }
 
 /**
- * ✅ CORRECTION: Commande groups utilisant context.currentUser
- * @param {Array} args - Arguments de la commande
- * @param {Object} context - Contexte (fileSystem, currentUser)
- */
-export function cmdGroups(args, context) {
-    const { fileSystem } = context;
-    const term = context?.terminal;
-    const outputFn = context?.addLine || ((str) => { term.write(`${str}\r\n`) });
-    const showError = context?.showError || ((str) => { term.write(`${str}\r\n`) });
-    
-    // ✅ CORRECTION: Utiliser context.currentUser au lieu de getCurrentUser()
-    const currentUser = context.currentUser;
-    if (!currentUser) {
-        showError('groups: aucun utilisateur connecté');
-        return;
-    }
-    
-    const targetUsername = args.length > 0 ? args[0] : currentUser.username;
-    
-    if (args.length > 1) {
-        showError('groups: trop d\'arguments');
-        showError('Usage: groups [utilisateur]');
-        return;
-    }
-    
-    showAllGroups(targetUsername, fileSystem, outputFn, true);
-}
-
-/**
  * Affiche tous les groupes d'un utilisateur
  * @param {string} username - Nom d'utilisateur
  * @param {Object} fileSystem - Système de fichiers
@@ -122,14 +93,14 @@ function showAllGroups(username, fileSystem, outputFn, namesOnly = false) {
     // Trouver l'utilisateur dans /etc/passwd pour obtenir son GID principal
     const passwdFile = fileSystem['/etc/passwd'];
     if (!passwdFile || passwdFile.type !== 'file') {
-        outputFn('groups: impossible de lire /etc/passwd');
+        outputFn('id: impossible de lire /etc/passwd');
         return;
     }
     
     const lines = passwdFile.content.split('\n');
     const userLine = lines.find(line => line.startsWith(username + ':'));
     if (!userLine) {
-        outputFn(`groups: '${username}': pas d'utilisateur de ce nom`);
+        outputFn(`id: '${username}': pas d'utilisateur de ce nom`);
         return;
     }
     
@@ -142,7 +113,7 @@ function showAllGroups(username, fileSystem, outputFn, namesOnly = false) {
     );
     
     if (userGroups.length === 0) {
-        outputFn(`groups: aucun groupe trouvé pour '${username}'`);
+        outputFn(`id: aucun groupe trouvé pour '${username}'`);
         return;
     }
     
