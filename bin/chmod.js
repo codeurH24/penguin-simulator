@@ -166,7 +166,58 @@ function getAllFilesRecursive(dirPath, fileSystem) {
 }
 
 /**
- * Commande chmod - Change les permissions de fichiers et dossiers
+ * Applique les modes de permissions à un fichier spécifique
+ * @param {string} targetPath - Chemin du fichier cible
+ * @param {Array} modes - Liste des modes à appliquer
+ * @param {Object} fileSystem - Système de fichiers
+ * @param {Object} currentUser - Utilisateur actuel
+ * @param {Function} errorFn - Fonction d'affichage d'erreur
+ * @returns {boolean} - true si succès, false si erreur
+ */
+function applyModesToFile(targetPath, modes, fileSystem, currentUser, errorFn) {
+    const targetItem = fileSystem[targetPath];
+    if (!targetItem) {
+        return false;
+    }
+    
+    // Vérifier les permissions pour ce fichier spécifique
+    if (!canModifyPermissions(targetItem, currentUser)) {
+        // Extraire juste le nom du fichier pour l'erreur
+        const fileName = targetPath.substring(targetPath.lastIndexOf('/') + 1);
+        errorFn(`chmod: modification des permissions de '${fileName}': Opération non permise`);
+        return false;
+    }
+    
+    let newPermissions = targetItem.permissions;
+    
+    try {
+        // Appliquer chaque mode
+        modes.forEach(mode => {
+            mode = mode.trim();
+            
+            if (/^[0-7]{3,4}$/.test(mode)) {
+                // Mode numérique
+                newPermissions = numericToSymbolic(mode, targetItem.type === 'dir');
+            } else {
+                // Mode symbolique
+                newPermissions = applySymbolicMode(newPermissions, mode);
+            }
+        });
+        
+        // Appliquer les nouvelles permissions
+        fileSystem[targetPath].permissions = newPermissions;
+        fileSystem[targetPath].modified = new Date();
+        
+        return true;
+        
+    } catch (error) {
+        errorFn(`chmod: ${error.message}`);
+        return false;
+    }
+}
+
+/**
+ * Commande chmod - Change les permissions de fichiers et dossiers (VERSION CORRIGÉE)
  * @param {Array} args - Arguments de la commande
  * @param {Object} context - Contexte (fileSystem, getCurrentPath, saveFileSystem)
  */
@@ -224,69 +275,42 @@ export function cmdChmod(args, context) {
     // Supprimer les doublons
     allFiles = [...new Set(allFiles)];
     
-    let successCount = 0;
-    let errorCount = 0;
+    let totalSuccessCount = 0;
+    let totalErrorCount = 0;
     
+    // ✅ CORRECTION PRINCIPALE: Traitement conforme au comportement Debian
     allFiles.forEach(fileName => {
         const fullPath = resolvePath(fileName, currentPath);
         
         if (!fileSystem[fullPath]) {
             errorFn(`chmod: impossible d'accéder à '${fileName}': Aucun fichier ou dossier de ce type`);
-            errorCount++;
+            totalErrorCount++;
             return;
         }
         
         const fileItem = fileSystem[fullPath];
         
-        // Vérifier les permissions
-        if (!canModifyPermissions(fileItem, currentUser)) {
-            errorFn(`chmod: modification des permissions de '${fileName}': Opération non permise`);
-            errorCount++;
-            return;
-        }
-        
-        // Collecter les fichiers à traiter (avec récursivité si demandée)
+        // Collecter tous les fichiers à traiter
         let filesToProcess = [fullPath];
         if (recursive && fileItem.type === 'dir') {
-            filesToProcess = getAllFilesRecursive(fullPath, fileSystem);
+            const recursiveFiles = getAllFilesRecursive(fullPath, fileSystem);
+            filesToProcess = recursiveFiles;
         }
         
-        // Appliquer les modes à tous les fichiers concernés
+        // ✅ CORRECTION: Appliquer les permissions à chaque fichier individuellement
+        // avec vérification des permissions pour chacun
         filesToProcess.forEach(targetPath => {
-            const targetItem = fileSystem[targetPath];
-            if (!targetItem) return;
-            
-            let newPermissions = targetItem.permissions;
-            
-            try {
-                // Appliquer chaque mode
-                modes.forEach(mode => {
-                    mode = mode.trim();
-                    
-                    if (/^[0-7]{3,4}$/.test(mode)) {
-                        // Mode numérique
-                        newPermissions = numericToSymbolic(mode, targetItem.type === 'dir');
-                    } else {
-                        // Mode symbolique
-                        newPermissions = applySymbolicMode(newPermissions, mode);
-                    }
-                });
-                
-                // Appliquer les nouvelles permissions
-                fileSystem[targetPath].permissions = newPermissions;
-                fileSystem[targetPath].modified = new Date();
-                
-            } catch (error) {
-                errorFn(`chmod: ${error.message}`);
-                errorCount++;
-                return;
+            const success = applyModesToFile(targetPath, modes, fileSystem, currentUser, errorFn);
+            if (success) {
+                totalSuccessCount++;
+            } else {
+                totalErrorCount++;
             }
         });
-        
-        successCount++;
     });
     
-    if (successCount > 0) {
+    // Sauvegarder si au moins un fichier a été modifié
+    if (totalSuccessCount > 0) {
         saveFileSystem();
     }
     
