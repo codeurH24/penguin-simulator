@@ -20,6 +20,7 @@
 | [`export`](#export---exporter-des-variables) | Builtin | `[var[=value]]` | Exporter des variables | ✅ |
 | [`exit`](#exit---quitter) | Builtin | `[code]` | Quitter une session utilisateur | ✅ |
 | [`useradd`](#useradd---ajouter-un-utilisateur) | Externe | `-m`, `-d`, `-g`, `-s` | Ajouter un utilisateur | ✅ |
+| [`chmod`](#chmod---modifier-les-permissions) | Externe | `mode` | Modifier les permissions | ✅ |
 | [`su`](#su---changer-dutilisateur) | Externe | `[user]` | Changer d'utilisateur | ✅ |
 | [`passwd`](#passwd---changer-mot-de-passe) | Externe | `[user]` | Changer mot de passe | ✅ |
 | [`whoami`](#whoami---utilisateur-courant) | Externe | - | Afficher l'utilisateur courant | 🟠 |
@@ -178,7 +179,10 @@ echo $HOME                     # Afficher une variable
 
 ### `cat` - Afficher le contenu
 
-**Syntaxe :** `cat fichier...`
+**Syntaxe :** `cat [options] fichier...`
+
+**Options :**
+- `-n` : Numéroter les lignes
 
 Affiche le contenu complet d'un ou plusieurs fichiers.
 
@@ -200,6 +204,27 @@ Crée des fichiers vides ou met à jour la date de modification.
 ```bash
 touch nouveau.txt             # Créer fichier vide
 touch file1 file2 file3      # Plusieurs fichiers
+```
+
+---
+
+### `chmod` - Modifier les permissions
+
+**Syntaxe :** `chmod mode fichier...`
+
+**Modes supportés :**
+- **Numérique** : `755`, `644`, etc.
+- **Symbolique** : `u+x`, `g-w`, `o=r`, etc.
+
+**Options :**
+- Aucune option spécifique implémentée actuellement
+
+**Exemples :**
+```bash
+chmod 755 script.sh           # Mode numérique
+chmod u+x fichier.txt         # Ajouter exécution pour propriétaire
+chmod g-w,o-r fichier.txt     # Retirer écriture groupe et lecture autres
+chmod a=r fichier.txt         # Lecture pour tous, rien d'autre
 ```
 
 ---
