@@ -80,7 +80,7 @@ export function runTestSuite(suiteName, tests) {
     
     // console.log(`\n📊 ${suiteName}: ${passed}/${results.length} tests réussis (${totalDuration}ms)`);
     
-    return {
+    const suiteResult = {
         name: suiteName,
         results,
         passed,
@@ -88,6 +88,13 @@ export function runTestSuite(suiteName, tests) {
         duration: totalDuration,
         success: passed === results.length
     };
+    
+    if (!suiteResult.success) {
+        const failedCount = suiteResult.total - suiteResult.passed;
+        throw new Error(`Suite "${suiteName}" a échoué: ${failedCount}/${suiteResult.total} tests ont échoué`);
+    }
+    
+    return suiteResult;
 }
 
 /**
