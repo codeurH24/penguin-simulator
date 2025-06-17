@@ -155,9 +155,9 @@ export async function saveContextToDB(context) {
     // Sauvegarder seulement les données, pas les méthodes
     const dataToSave = {
         fileSystem: context.fileSystem,
-        currentPath: context.currentPath,
+        // currentPath: context.currentPath,
         variables: context.variables,
-        currentUser: getCurrentUser() //  save root user
+        // currentUser: getCurrentUser() //  save root user
     };
 
     const success = await saveData(dataToSave);
