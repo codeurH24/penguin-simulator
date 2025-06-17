@@ -14,5 +14,4 @@ news:x:9:
 users:x:100:
 sudo:x:27:
 nogroup:x:65534:
-
 `;
