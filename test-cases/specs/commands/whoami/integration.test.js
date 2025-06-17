@@ -2,7 +2,7 @@
 import { createTestContext, clearCaptures, getCaptures } from '../../../lib/context.js';
 import { assert, validateFileSystem, testUtils } from '../../../lib/helpers.js';
 import { createTest } from '../../../lib/runner.js';
-import { cmdWhoami } from '../../../../bin/user-info.js';
+import { cmdWhoami } from '../../../../bin/whoami.js';
 import { cmdUseradd } from '../../../../bin/useradd.js';
 import { cmdSu } from '../../../../bin/su.js';
 import { cmdExit } from '../../../../lib/bash-builtins.js';

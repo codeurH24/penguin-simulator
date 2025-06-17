@@ -2,7 +2,7 @@
 import { createTestContext, clearCaptures, getCaptures } from '../../../lib/context.js';
 import { assert, validateFileSystem, testUtils } from '../../../lib/helpers.js';
 import { createTest } from '../../../lib/runner.js';
-import { cmdWhoami } from '../../../../bin/user-info.js';
+import { cmdWhoami } from '../../../../bin/whoami.js';
 
 /**
  * Test 1: whoami affiche uniquement le nom d'utilisateur

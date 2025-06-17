@@ -23,7 +23,8 @@
 | [`chmod`](#chmod---modifier-les-permissions) | Externe | `mode` | Modifier les permissions | ✅ |
 | [`su`](#su---changer-dutilisateur) | Externe | `[user]` | Changer d'utilisateur | ✅ |
 | [`passwd`](#passwd---changer-mot-de-passe) | Externe | `[user]` | Changer mot de passe | ✅ |
-| [`whoami`](#whoami---utilisateur-courant) | Externe | - | Afficher l'utilisateur courant | 🟠 |
+| [`sudo`](#sudo---exécution-avec-privilèges-élevés) | Externe | `-u`, `-l`, `-k`, `-v` | Exécuter avec privilèges élevés | 🟠 |
+| [`whoami`](#whoami---utilisateur-courant) | Externe | - | Afficher l'utilisateur courant | ✅ |
 | [`id`](#id---informations-didentité) | Externe | `[user]` | Afficher infos d'identité | 🟠 |
 | [`groups`](#groups---groupes-de-lutilisateur) | Externe | `[user]` | Afficher les groupes | 🟠 |
 
@@ -283,13 +284,25 @@ passwd john                   # Mot de passe de john (si root)
 
 ---
 
-### Commandes d'information
-
-#### `whoami` - Utilisateur courant 🟠
-**⚠️ STATUT : TESTS INCOMPLETS** - Fonctionnel mais tests absents ou incomplets
+#### `sudo` - Exécution avec privilèges élevés 🟠
+**⚠️ STATUT : TESTS INCOMPLETS** - Implémentation avancée mais tests absents
 
 ```bash
-whoami                        # Affiche : john
+sudo ls /root                 # Exécuter ls en tant que root
+sudo -u alice cat file.txt    # Exécuter en tant qu'alice  
+sudo -l                       # Lister les privilèges
+sudo -k                       # Effacer le timestamp
+```
+
+---
+
+### Commandes d'information
+
+#### `whoami` - Utilisateur courant ✅
+**✅ STATUT : COMPLET AVEC TESTS** - Implémentation complète et tests de conformité Debian
+
+```bash
+whoami                        # Affiche : root
 ```
 
 #### `id` - Informations d'identité 🟠

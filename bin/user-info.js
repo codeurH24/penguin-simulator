@@ -1,33 +1,7 @@
 // bin/user-info.js - Commandes d'information utilisateur (VERSION CORRIGÉE avec context)
-// Équivalents de whoami, id, groups sous Debian
+// Équivalents de id, groups sous Debian
 
 import { parseGroupFile } from '../modules/users/user.service.js';
-
-/**
- * ✅ CORRECTION: Commande whoami utilisant context.currentUser
- * @param {Array} args - Arguments de la commande
- * @param {Object} context - Contexte
- */
-export function cmdWhoami(args, context) {
-    const term = context?.terminal;
-    const outputFn = context?.addLine || ((str) => { term.write(`${str}\r\n`) });
-    const showError = context?.showError || ((str) => { term.write(`${str}\r\n`) });
-    
-    if (args.length > 0) {
-        showError('whoami: trop d\'arguments');
-        showError('Usage: whoami');
-        return;
-    }
-    
-    // ✅ CORRECTION: Utiliser context.currentUser au lieu de getCurrentUser()
-    const currentUser = context.currentUser;
-    if (!currentUser) {
-        showError('whoami: aucun utilisateur connecté');
-        return;
-    }
-    
-    outputFn(currentUser.username);
-}
 
 /**
  * ✅ CORRECTION: Commande id utilisant context.currentUser

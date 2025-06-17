@@ -9,11 +9,12 @@ import { cmdPasswd } from "../../../bin/passwd.js";
 import { cmdRm } from "../../../bin/rm.js";
 import { cmdSu } from "../../../bin/su.js";
 import { cmdUseradd } from "../../../bin/useradd.js";
-import { cmdGroups, cmdId, cmdWhoami } from "../../../bin/user-info.js";
+import { cmdGroups, cmdId } from "../../../bin/user-info.js";
 import { cmdChmod } from "../../../bin/chmod.js";
 import { cmdChown } from "../../../bin/chown.js";
 import { cmdUserdel } from "../../../bin/userdel.js";
 import { cmdSudo } from "../../../bin/sudo.js";
+import { cmdWhoami } from "../../../bin/whoami.js";
 
 export function cmd(cmd, args) {
     if (cmd === 'cd') {
