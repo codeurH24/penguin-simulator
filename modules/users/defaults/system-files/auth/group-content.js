@@ -12,4 +12,7 @@ lp:x:7:
 mail:x:8:
 news:x:9:
 users:x:100:
-nogroup:x:65534:`;
+sudo:x:27:
+nogroup:x:65534:
+
+`;
