@@ -105,7 +105,6 @@ function testStickyBitProtection() {
     cmdRm(['/tmp/alice_file.txt'], context);
     
     const captures = getCaptures();
-    testUtils.debugCaptures();
     
     // Cela devrait échouer à cause du sticky bit
     const hasPermissionError = hasPermissionDeniedError(captures);
@@ -204,7 +203,6 @@ function testRecursiveMixedPermissions() {
     cmdRm(['-r', '/home/complex'], context);
     
     const captures = getCaptures();
-    testUtils.debugCaptures();
     
     // Cela devrait échouer à cause du sous-dossier protégé
     const hasPermissionError = hasPermissionDeniedError(captures);
@@ -246,7 +244,6 @@ function testForceWithWildcardsAndMissingFiles() {
     cmdRm(['-f', '/tmp/nonexistent.txt'], context);
     
     const captures1 = getCaptures();
-    testUtils.debugCaptures();
     
     // Aucun message d'erreur ne devrait être affiché
     const hasErrorMessage1 = captures1.some(capture => capture.className === 'error');
@@ -331,7 +328,6 @@ function testRecursiveWithIndividualFilePermissions() {
     cmdRm(['-r', '/tmp/granular'], context);
     
     const captures = getCaptures();
-    testUtils.debugCaptures();
     
     // Cela devrait échouer à cause du fichier privé
     const hasPermissionError = hasPermissionDeniedError(captures);
@@ -385,7 +381,6 @@ function testForceWithMixedPermissions() {
     cmdRm(['-f', '/tmp/mixed/accessible.txt', '/tmp/mixed/protected.txt'], context);
     
     const captures = getCaptures();
-    testUtils.debugCaptures();
     
     // Avec -f, aucun message d'erreur ne devrait être affiché
     const hasErrorMessage = captures.some(capture => capture.className === 'error');

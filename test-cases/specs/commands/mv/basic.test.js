@@ -54,8 +54,6 @@ function testSimpleFileRename() {
     // Renommer le fichier
     cmdMv(['oldname.txt', 'newname.txt'], context);
     
-    testUtils.debugFileSystem(context, 'Après mv rename');
-    
     // Vérifications
     assert.fileNotExists(context, '/root/oldname.txt', 'Le fichier source ne devrait plus exister');
     assert.fileExists(context, '/root/newname.txt', 'Le fichier destination devrait exister');

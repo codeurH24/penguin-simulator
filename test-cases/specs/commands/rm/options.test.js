@@ -55,12 +55,8 @@ function testRecursiveWithFiles() {
     assert.fileExists(context, '/root/parent/file2.txt', 'parent/file2.txt devrait exister');
     assert.fileExists(context, '/root/parent/child/nested.txt', 'parent/child/nested.txt devrait exister');
     
-    testUtils.debugFileSystem(context, 'Avant rm -r');
-    
     // Supprimer récursivement
     cmdRm(['-r', 'parent'], context);
-    
-    testUtils.debugFileSystem(context, 'Après rm -r');
     
     // Vérifier que tout a été supprimé
     assert.fileNotExists(context, '/root/parent', 'parent devrait être supprimé');

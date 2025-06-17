@@ -71,7 +71,7 @@ export function createDefaultContext() {
         context.fileSystem['/tmp'] = tmpEntry;
 
 
-        console.log('✅ Contexte par défaut : fichiers système créés avec succès');
+        // console.log('✅ Contexte par défaut : fichiers système créés avec succès');
 
     } catch (error) {
         console.error('❌ Erreur lors de la création des répertoires système avec FileSystemService:');

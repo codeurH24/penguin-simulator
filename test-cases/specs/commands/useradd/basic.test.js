@@ -206,7 +206,6 @@ function testNoArguments() {
     
     // Vérifier qu'une erreur a été capturée
     const captures = getCaptures();
-    testUtils.debugCaptures(); // Debug pour voir les messages
     const hasError = hasExpectedError(captures, 'missing_name');
     
     assert.isTrue(hasError, 'Une erreur devrait être affichée sans arguments');
@@ -232,7 +231,6 @@ function testUserAlreadyExists() {
     
     // Vérifier qu'une erreur a été capturée
     const captures = getCaptures();
-    testUtils.debugCaptures(); // Debug pour voir les messages
     const hasError = hasExpectedError(captures, 'user_exists');
     
     assert.isTrue(hasError, 'Une erreur devrait être affichée pour un utilisateur existant');
@@ -253,7 +251,6 @@ function testInvalidUsername() {
     cmdUseradd(['123invalid'], context);
     
     let captures = getCaptures();
-    testUtils.debugCaptures(); // Debug pour voir les messages
     let hasError = hasExpectedError(captures, 'invalid_name');
     assert.isTrue(hasError, 'Nom commençant par chiffre devrait être invalide');
     
@@ -262,7 +259,6 @@ function testInvalidUsername() {
     cmdUseradd(['invalid@name'], context);
     
     captures = getCaptures();
-    testUtils.debugCaptures(); // Debug pour voir les messages
     hasError = hasExpectedError(captures, 'invalid_name');
     assert.isTrue(hasError, 'Nom avec @ devrait être invalide');
     
@@ -272,7 +268,6 @@ function testInvalidUsername() {
     cmdUseradd([longName], context);
     
     captures = getCaptures();
-    testUtils.debugCaptures(); // Debug pour voir les messages
     hasError = hasExpectedError(captures, 'invalid_name');
     assert.isTrue(hasError, 'Nom trop long devrait être invalide');
     

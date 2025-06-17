@@ -31,13 +31,9 @@ function testWildcardInSubdirectory() {
     assert.fileExists(context, '/root/testFile', 'testFile devrait exister');
     assert.fileExists(context, '/root/text.txt', 'text.txt devrait exister');
     
-    testUtils.debugFileSystem(context, 'Avant rm dossier1/file*');
-    
     // Essayer de supprimer avec wildcard (reproduit l'erreur exacte)
     clearCaptures();
     cmdRm(['dossier1/file*'], context);
-    
-    testUtils.debugCaptures();
     
     // Vérifier que les fichiers ont été supprimés
     assert.fileNotExists(context, '/root/dossier1/file1', 'dossier1/file1 devrait être supprimé');

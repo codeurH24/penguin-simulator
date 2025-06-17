@@ -200,7 +200,7 @@ function testAliceCannotReadFileWithoutReadPermission() {
     
     // 🔍 DEBUG: Analyser les captures
     const captures = getCaptures();
-    console.log('🔍 DEBUG Test 3 - Captures:', captures.length);
+    
     captures.forEach((capture, i) => {
         console.log(`   Capture ${i}: [${capture.className}] "${capture.text}"`);
     });

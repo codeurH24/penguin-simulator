@@ -15,13 +15,8 @@ function testSimpleFileCreation() {
     const validation = validateFileSystem(context);
     assert.isTrue(validation.success, 'Contexte initial doit être valide');
     
-    testUtils.debugFileSystem(context, 'Avant touch');
-    
     // Exécuter touch
     cmdTouch(['test-file.txt'], context);
-    
-    testUtils.debugFileSystem(context, 'Après touch');
-    testUtils.debugCaptures();
     
     // Vérifications
     assert.fileExists(context, '/root/test-file.txt', 'Le fichier test-file.txt devrait être créé');

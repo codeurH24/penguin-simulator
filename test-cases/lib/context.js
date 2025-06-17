@@ -9,17 +9,17 @@ let capturedOutputs = [];
 // Fonctions de capture pour remplacer les vraies fonctions terminal
 function captureAddLine(text, className = '') {
     capturedOutputs.push({ text, className });
-    console.log(`[CAPTURE] ${className ? `[${className}] ` : ''}${text}`);
+    // console.log(`[CAPTURE] ${className ? `[${className}] ` : ''}${text}`);
 }
 
 function captureShowError(message) {
     capturedOutputs.push({ text: message, className: 'error' });
-    console.log(`[CAPTURE ERROR] ${message}`);
+    // console.log(`[CAPTURE ERROR] ${message}`);
 }
 
 function captureShowSuccess(message) {
     capturedOutputs.push({ text: message, className: 'success' });
-    console.log(`[CAPTURE SUCCESS] ${message}`);
+    // console.log(`[CAPTURE SUCCESS] ${message}`);
 }
 
 
@@ -41,7 +41,7 @@ export function createTestContext(nameTest=null) {
     // Étape 3: Modifier saveFileSystem pour éviter la persistance en mode test
     const originalSaveFileSystem = context.saveFileSystem;
     context.saveFileSystem = function() {
-        console.log('[TEST MODE] saveFileSystem() appelé - pas de sauvegarde DB');
+        // console.log('[TEST MODE] saveFileSystem() appelé - pas de sauvegarde DB');
         return Promise.resolve(true);
     };
     

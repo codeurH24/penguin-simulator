@@ -39,6 +39,6 @@ export function copySkelFiles(fileSystem, homePath, owner, group) {
         };
         
         fileSystem[destPath] = newEntry;
-        console.log(`📄 Copié ${skelPath} → ${destPath}`);
+        // console.log(`📄 Copié ${skelPath} → ${destPath}`);
     });
 }

@@ -49,19 +49,19 @@ export function runSingleTest(name, testFn) {
  * @returns {Object} - Résultats de la suite
  */
 export function runTestSuite(suiteName, tests) {
-    console.log(`\n🧪 === ${suiteName} ===`);
+    // console.log(`\n🧪 === ${suiteName} ===`);
     
     const results = [];
     const startTime = performance.now();
     
     for (const test of tests) {
-        console.log(`\n▶️ ${test.name}`);
+        // console.log(`\n▶️ ${test.name}`);
         const result = runSingleTest(test.name, test.fn);
         results.push(result);
         
         const status = result.success ? '✅' : '❌';
         const duration = `(${result.duration}ms)`;
-        console.log(`${status} ${test.name} ${duration}`);
+        // console.log(`${status} ${test.name} ${duration}`);
         
         if (!result.success) {
             console.log(`   💥 ${result.error}`);
@@ -78,7 +78,7 @@ export function runTestSuite(suiteName, tests) {
     const totalDuration = Math.round(endTime - startTime);
     const passed = results.filter(r => r.success).length;
     
-    console.log(`\n📊 ${suiteName}: ${passed}/${results.length} tests réussis (${totalDuration}ms)`);
+    // console.log(`\n📊 ${suiteName}: ${passed}/${results.length} tests réussis (${totalDuration}ms)`);
     
     return {
         name: suiteName,
@@ -138,19 +138,19 @@ async function runSingleTestAsync(name, testFn) {
  * @returns {Promise<Object>} - Résultats de la suite
  */
 export async function runTestSuiteAsync(suiteName, tests) {
-    console.log(`\n🧪 === ${suiteName} ===`);
+    // console.log(`\n🧪 === ${suiteName} ===`);
     
     const results = [];
     const startTime = performance.now();
     
     for (const test of tests) {
-        console.log(`\n▶️ ${test.name}`);
+        // console.log(`\n▶️ ${test.name}`);
         const result = await runSingleTestAsync(test.name, test.fn);
         results.push(result);
         
         const status = result.success ? '✅' : '❌';
         const duration = `(${result.duration}ms)`;
-        console.log(`${status} ${test.name} ${duration}`);
+        // console.log(`${status} ${test.name} ${duration}`);
         
         if (!result.success) {
             console.log(`   💥 ${result.error}`);
@@ -167,7 +167,7 @@ export async function runTestSuiteAsync(suiteName, tests) {
     const totalDuration = Math.round(endTime - startTime);
     const passed = results.filter(r => r.success).length;
     
-    console.log(`\n📊 ${suiteName}: ${passed}/${results.length} tests réussis (${totalDuration}ms)`);
+    // console.log(`\n📊 ${suiteName}: ${passed}/${results.length} tests réussis (${totalDuration}ms)`);
     
     return {
         name: suiteName,

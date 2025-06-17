@@ -17,8 +17,6 @@ function testNoCreateOption() {
     // Utiliser touch -c sur un fichier inexistant
     cmdTouch(['-c', 'nonexistent.txt'], context);
     
-    testUtils.debugFileSystem(context, 'Après touch -c');
-    
     // Vérifier que le fichier n'a pas été créé
     assert.fileNotExists(context, '/root/nonexistent.txt', 'Le fichier ne devrait pas être créé avec -c');
     

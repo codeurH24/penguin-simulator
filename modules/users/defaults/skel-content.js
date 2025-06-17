@@ -22,5 +22,5 @@ export function createSkelStructure(fileSystem) {
     fileSystem['/etc/skel/.vimrc'] = createFileEntry(DEFAULT_VIMRC_CONTENT);
     fileSystem['/etc/skel/.bash_logout'] = createFileEntry(DEFAULT_BASH_LOGOUT_CONTENT);
 
-    console.log('📁 Structure /etc/skel créée avec tous les fichiers Debian standards');
+    // console.log('📁 Structure /etc/skel créée avec tous les fichiers Debian standards');
 }

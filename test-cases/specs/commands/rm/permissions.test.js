@@ -96,7 +96,6 @@ function testDeleteFileNoWritePermissionInParent() {
     cmdRm(['/tmp/restricted/testfile.txt'], context);
     
     const captures = getCaptures();
-    testUtils.debugCaptures();
     
     // Vérifier qu'une erreur de permission denied a été générée
     const hasPermissionError = hasPermissionDeniedError(captures);
@@ -146,7 +145,6 @@ function testDeleteFileByOwner() {
     cmdRm(['/tmp/bob_dir/bob_file.txt'], context);
     
     const captures = getCaptures();
-    testUtils.debugCaptures();
     
     // Aucune erreur ne devrait être générée
     const hasPermissionError = hasPermissionDeniedError(captures);
@@ -196,7 +194,6 @@ function testRecursiveDeleteNoPermission() {
     cmdRm(['-r', '/tmp/protected/subdir'], context);
     
     const captures = getCaptures();
-    testUtils.debugCaptures();
     
     // Une erreur devrait être générée
     const hasPermissionError = hasPermissionDeniedError(captures);
@@ -246,7 +243,6 @@ function testRootCanAlwaysDelete() {
     cmdRm(['-r', '/tmp/dave_private'], context);
     
     const captures = getCaptures();
-    testUtils.debugCaptures();
     
     // Aucune erreur ne devrait être générée pour root
     const hasPermissionError = hasPermissionDeniedError(captures);
@@ -288,7 +284,6 @@ function testForceOptionIgnoresPermissionErrors() {
     cmdRm(['-f', '/tmp/readonly/protected.txt'], context);
     
     const captures = getCaptures();
-    testUtils.debugCaptures();
     
     // Avec -f, rm devrait être silencieux même en cas d'erreur de permission
     // Le fichier devrait toujours exister car eve n'a pas les permissions
@@ -341,7 +336,6 @@ function testRecursiveDeleteNeedsReadPermission() {
     cmdRm(['-r', '/tmp/complex/level1'], context);
     
     const captures = getCaptures();
-    testUtils.debugCaptures();
     
     // Sans permission de lecture, rm -r devrait échouer
     const hasPermissionError = hasPermissionDeniedError(captures);

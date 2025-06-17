@@ -60,7 +60,6 @@ function suPreservesDirectory({context}, username, originalPath) {
 function testSuPreservesCurrentDirectory() {
     clearCaptures();
     const context = createTestContext();
-    console.log('DEBUG TEST "su" context', context);
 
     // Préparer alice sans mot de passe (ignore les messages de passwd)
     prepareUserWithoutPassword(context, 'alice');

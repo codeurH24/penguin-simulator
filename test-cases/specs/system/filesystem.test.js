@@ -10,8 +10,6 @@ function testBasicDirectories() {
     clearCaptures();
     const context = createTestContext();
     
-    testUtils.debugFileSystem(context, 'Dossiers de base');
-    
     // Vérifier que les dossiers essentiels existent
     assert.fileExists(context, '/', 'Le dossier racine / devrait exister');
     assert.fileExists(context, '/home', 'Le dossier /home devrait exister');

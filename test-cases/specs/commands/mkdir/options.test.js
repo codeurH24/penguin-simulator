@@ -19,8 +19,6 @@ function testParentDirectoriesOption() {
     // Créer avec l'option -p
     cmdMkdir(['-p', 'level1/level2/level3'], context);
     
-    testUtils.debugFileSystem(context, 'Après mkdir -p');
-    
     // Vérifier que tous les niveaux ont été créés
     assert.fileExists(context, '/root/level1', 'level1 devrait être créé');
     assert.fileExists(context, '/root/level1/level2', 'level1/level2 devrait être créé');

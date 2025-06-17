@@ -15,13 +15,8 @@ function testSimpleDirectoryCreation() {
     const validation = validateFileSystem(context);
     assert.isTrue(validation.success, 'Contexte initial doit être valide');
     
-    testUtils.debugFileSystem(context, 'Avant mkdir');
-    
     // Exécuter mkdir
     cmdMkdir(['test-folder'], context);
-    
-    testUtils.debugFileSystem(context, 'Après mkdir');
-    testUtils.debugCaptures();
     
     // Vérifications
     assert.fileExists(context, '/root/test-folder', 'Le dossier test-folder devrait être créé');

@@ -251,7 +251,6 @@ function testInvalidUID() {
     cmdUseradd(['-u', '-500', 'invalid1'], context);
     
     let captures = getCaptures();
-    testUtils.debugCaptures(); // Debug pour voir les messages
     let hasError = hasExpectedError(captures, 'invalid_uid');
     assert.isTrue(hasError, 'UID négatif devrait être invalide');
     
@@ -260,7 +259,6 @@ function testInvalidUID() {
     cmdUseradd(['-u', 'abc', 'invalid2'], context);
     
     captures = getCaptures();
-    testUtils.debugCaptures(); // Debug pour voir les messages
     hasError = hasExpectedError(captures, 'invalid_uid');
     assert.isTrue(hasError, 'UID non numérique devrait être invalide');
     
@@ -280,7 +278,6 @@ function testInvalidGID() {
     cmdUseradd(['-g', '-600', 'invalid3'], context);
     
     let captures = getCaptures();
-    testUtils.debugCaptures(); // Debug pour voir les messages
     let hasError = hasExpectedError(captures, 'invalid_gid');
     assert.isTrue(hasError, 'GID négatif devrait être invalide');
     
@@ -289,7 +286,6 @@ function testInvalidGID() {
     cmdUseradd(['-g', 'xyz', 'invalid4'], context);
     
     captures = getCaptures();
-    testUtils.debugCaptures(); // Debug pour voir les messages
     hasError = hasExpectedError(captures, 'invalid_gid');
     assert.isTrue(hasError, 'GID non numérique devrait être invalide');
     
@@ -314,7 +310,6 @@ function testUIDInUse() {
     
     // Vérifier qu'une erreur a été capturée
     const captures = getCaptures();
-    testUtils.debugCaptures(); // Debug pour voir les messages
     const hasError = hasExpectedError(captures, 'uid_in_use');
     
     assert.isTrue(hasError, 'Une erreur devrait être affichée pour UID déjà utilisé');
@@ -340,7 +335,6 @@ function testUnknownOption() {
     
     // Vérifier qu'une erreur a été capturée
     const captures = getCaptures();
-    testUtils.debugCaptures(); // Debug pour voir les messages
     const hasError = hasExpectedError(captures, 'unknown_option');
     
     assert.isTrue(hasError, 'Une erreur devrait être affichée pour option inconnue');
