@@ -91,7 +91,6 @@ export async function createAndSaveContext(testMode = false) {
     if (!isDBReady()) {
         await openDB();
     }
-
     const context = createDefaultContext();
 
     // Initialiser les fichiers système (passwd, shadow, group, etc.)
@@ -112,9 +111,14 @@ export async function createAndSaveContext(testMode = false) {
         if (!success) {
             throw new Error('Échec de la sauvegarde du contexte');
         }
+        console.log('Nouveau contexte par defaut créé et sauvegardé');
+    }
+    else {
+        context.saveFileSystem = function() {}
+        console.log('Nouveau contexte par defaut créé en mode test');
     }
 
-    console.log('Nouveau contexte créé et sauvegardé');
+    
     return context;
 }
 

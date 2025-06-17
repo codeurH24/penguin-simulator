@@ -10,11 +10,8 @@ import { initApp } from '../../../../index.js';
  * Test du processus complet de changement de mot de passe interactif
  */
 async function testInteractivePasswordChange() {
-    const terminal = await initApp();
-
-
-    terminal.getContext();
-
+    const terminal = await initApp(true);
+    
     // S'assurer qu'alice existe pour le test
     cmdUseradd(['alice'], terminal.getContext());
 
