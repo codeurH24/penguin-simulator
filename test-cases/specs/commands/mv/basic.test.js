@@ -160,7 +160,7 @@ function testNonexistentSource() {
 }
 
 /**
- * Test d'erreur : destination existe déjà (fichier vers fichier)
+ * Test de comportement Debian : écrasement silencieux de la destination
  */
 function testDestinationExists() {
     clearCaptures();
@@ -173,25 +173,28 @@ function testDestinationExists() {
     assert.fileExists(context, '/root/source.txt', 'Le fichier source devrait exister');
     assert.fileExists(context, '/root/existing.txt', 'Le fichier destination devrait exister');
     
-    // Essayer de déplacer vers un fichier existant
+    // Vérifier le contenu initial
+    const initialSource = context.fileSystem['/root/source.txt'];
+    const initialDest = context.fileSystem['/root/existing.txt'];
+    assert.equals(initialSource.content, 'contenu source', 'Contenu source initial');
+    assert.equals(initialDest.content, 'contenu existant', 'Contenu destination initial');
+    
+    // COMPORTEMENT DEBIAN: mv écrase silencieusement le fichier existant
     cmdMv(['source.txt', 'existing.txt'], context);
     
-    // Vérifier qu'une erreur a été capturée
+    // Vérifier qu'AUCUNE erreur n'a été capturée (comportement Debian)
     const captures = getCaptures();
-    const hasError = hasExpectedError(captures, 'exists');
+    assert.captureCount(0, 'mv doit être silencieux lors de l\'écrasement (comportement Debian)');
     
-    assert.isTrue(hasError, 'Une erreur devrait être affichée pour une destination existante');
-    
-    // Vérifier que les fichiers originaux n'ont pas changé
-    assert.fileExists(context, '/root/source.txt', 'Le fichier source devrait toujours exister');
+    // COMPORTEMENT DEBIAN: Vérifications après écrasement
+    assert.fileNotExists(context, '/root/source.txt', 'Le fichier source ne devrait plus exister');
     assert.fileExists(context, '/root/existing.txt', 'Le fichier destination devrait toujours exister');
     
-    const sourceFile = context.fileSystem['/root/source.txt'];
-    const destFile = context.fileSystem['/root/existing.txt'];
-    assert.equals(sourceFile.content, 'contenu source', 'Le contenu source ne devrait pas changer');
-    assert.equals(destFile.content, 'contenu existant', 'Le contenu destination ne devrait pas changer');
+    // ESSENTIEL: Le contenu de destination doit maintenant être celui de source
+    const finalFile = context.fileSystem['/root/existing.txt'];
+    assert.equals(finalFile.content, 'contenu source', 'Le contenu destination devrait être écrasé par celui de source');
     
-    console.log('✅ Erreur correcte pour destination existante');
+    console.log('✅ DEBIAN CONFORME: Écrasement silencieux de destination existante');
     return true;
 }
 
