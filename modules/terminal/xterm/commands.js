@@ -13,6 +13,7 @@ import { cmdGroups, cmdId, cmdWhoami } from "../../../bin/user-info.js";
 import { cmdChmod } from "../../../bin/chmod.js";
 import { cmdChown } from "../../../bin/chown.js";
 import { cmdUserdel } from "../../../bin/userdel.js";
+import { cmdSudo } from "../../../bin/sudo.js";
 
 export function cmd(cmd, args) {
     if (cmd === 'cd') {
@@ -77,6 +78,9 @@ export function cmd(cmd, args) {
     }
     else if (cmd === 'export') {
         cmdExport(args, this.context);
+    }
+    else if (cmd === 'sudo') {
+        cmdSudo(args, this.context);
     }
     else {
         this.term.write(`bash: ${cmd}: commande introuvable\r\n`);
