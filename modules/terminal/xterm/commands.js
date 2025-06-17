@@ -75,6 +75,9 @@ export function cmd(cmd, args) {
     else if (cmd === 'chown') {
         cmdChown(args, this.context);
     }
+    else if (cmd === 'export') {
+        cmdExport(args, this.context);
+    }
     else {
         this.term.write(`bash: ${cmd}: commande introuvable\r\n`);
     }
