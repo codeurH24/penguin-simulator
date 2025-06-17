@@ -134,11 +134,14 @@ export async function getContextFromDB() {
         return null;
     }
 
-    // Ajouter les méthodes au contexte récupéré
-    addContextMethods(data);
+    const defaultContext = createDefaultContext();
+    const context = { ...defaultContext, ...data };
 
-    console.log('Contexte récupéré depuis IndexedDB:', data);
-    return data;
+    // Ajoute les méthodes au contexte final
+    addContextMethods(context);
+
+    console.log('Contexte récupéré depuis IndexedDB :', context);
+    return context;
 }
 
 /**
