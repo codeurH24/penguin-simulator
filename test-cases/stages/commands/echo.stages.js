@@ -3,6 +3,7 @@ import { runTestSuite } from '../../lib/runner.js';
 import { echoBasicTests } from '../../specs/commands/echo/basic.test.js';
 import { echoOptionsTests } from '../../specs/commands/echo/options.test.js';
 import { echoRedirectionsTests } from '../../specs/commands/echo/redirections.test.js';
+import { echoRedirectionsPermissionsTests } from '../../specs/commands/echo/redirections-permissions.test.js';
 import { echoEdgeCasesTests } from '../../specs/commands/echo/edge-cases.test.js';
 
 export function stages(suites) {
@@ -21,6 +22,11 @@ export function stages(suites) {
     console.log('\n🔀 Tests des redirections de echo...');
     const echoRedirectionsResults = runTestSuite('echo - Tests des redirections', echoRedirectionsTests);
     suites.push(echoRedirectionsResults);
+    
+    // ✅ NOUVEAU: Tests des permissions pour les redirections echo
+    console.log('\n🔒 Tests des permissions de redirections echo...');
+    const echoRedirectionsPermissionsResults = runTestSuite('echo - Tests permissions redirections', echoRedirectionsPermissionsTests);
+    suites.push(echoRedirectionsPermissionsResults);
     
     // Tests des cas limites pour echo
     console.log('\n🎯 Tests des cas limites de echo...');

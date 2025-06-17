@@ -244,7 +244,8 @@ function testEchoRedirectAppendMultiple() {
 }
 
 /**
- * Test d'erreur de redirection vers dossier inexistant
+ * ✅ TEST CORRIGÉ : Test d'erreur de redirection vers dossier inexistant
+ * Maintenant teste le comportement bash standard (correct)
  */
 function testEchoRedirectToNonexistentDirectory() {
     clearCaptures();
@@ -253,20 +254,58 @@ function testEchoRedirectToNonexistentDirectory() {
     // Essayer de rediriger vers un dossier inexistant
     executeCommand('echo "test" > nonexistent/file.txt', context);
     
-    // Note: L'implémentation actuelle crée le fichier même si le dossier parent n'existe pas
-    // C'est différent du comportement bash standard, mais on teste l'implémentation actuelle
+    // ✅ COMPORTEMENT CORRECT : bash standard refuse cette opération
+    // Le répertoire parent doit exister pour pouvoir créer un fichier
     
-    // Vérifier que le fichier a été créé (comportement de l'implémentation actuelle)
-    assert.fileExists(context, '/root/nonexistent/file.txt', 'Le fichier devrait être créé avec l\'implémentation actuelle');
+    const captures = getCaptures();
     
-    // Vérifier le contenu
-    const file = context.fileSystem['/root/nonexistent/file.txt'];
-    assert.isTrue(file.content.includes('test'), 'Le fichier devrait contenir "test"');
+    // Vérifier qu'une erreur a été générée et capturée
+    const hasError = captures.some(capture => 
+        capture.className === 'error' && 
+        (capture.text.includes('No such file or directory') || 
+         capture.text.includes('nonexistent'))
+    );
+    assert.isTrue(hasError, 'Une erreur "No such file or directory" devrait être générée et capturée');
     
-    console.log('✅ Redirection crée le fichier même sans dossier parent (comportement implémentation)');
+    // Vérifier que le fichier n'a PAS été créé (comportement correct)
+    assert.fileNotExists(context, '/root/nonexistent/file.txt', 'Le fichier ne devrait pas être créé sans répertoire parent');
+    
+    // Vérifier que le répertoire parent n'a pas été créé non plus
+    assert.fileNotExists(context, '/root/nonexistent', 'Le répertoire parent ne devrait pas être créé automatiquement');
+    
+    console.log('✅ Redirection vers répertoire inexistant échoue correctement (comportement bash standard)');
     return true;
 }
 
+/**
+ * ✅ NOUVEAU TEST : Redirection réussit après création du répertoire parent
+ * Démontre le comportement correct quand le répertoire existe
+ */
+function testEchoRedirectAfterCreatingParentDirectory() {
+    clearCaptures();
+    const context = createTestContext();
+    
+    // D'abord créer le répertoire parent
+    testUtils.createTestDirectory(context, '/root/newdir');
+    
+    // Maintenant la redirection devrait fonctionner
+    clearCaptures();
+    executeCommand('echo "success" > newdir/file.txt', context);
+    
+    const captures = getCaptures();
+    
+    // Aucune erreur ne devrait être générée
+    const hasError = captures.some(capture => capture.className === 'error');
+    assert.isFalse(hasError, 'Aucune erreur ne devrait être générée quand le répertoire parent existe');
+    
+    // Vérifier que le fichier a été créé avec le bon contenu
+    assert.fileExists(context, '/root/newdir/file.txt', 'Le fichier devrait être créé quand le répertoire parent existe');
+    const file = context.fileSystem['/root/newdir/file.txt'];
+    assert.isTrue(file.content.includes('success'), 'Le fichier devrait contenir le bon contenu');
+    
+    console.log('✅ Redirection réussit quand le répertoire parent existe');
+    return true;
+}
 /**
  * Test de redirection avec guillemets
  */
@@ -300,6 +339,7 @@ export const echoRedirectionsTests = [
     createTest('Redirection vers sous-dossier', testEchoRedirectToSubdirectory),
     createTest('Redirection arguments multiples', testEchoRedirectMultipleArgs),
     createTest('Appends multiples', testEchoRedirectAppendMultiple),
-    createTest('Erreur dossier inexistant', testEchoRedirectToNonexistentDirectory),
-    createTest('Redirection avec guillemets', testEchoRedirectWithQuotes)
+    createTest('Erreur répertoire inexistant', testEchoRedirectToNonexistentDirectory),
+    createTest('Redirection avec guillemets', testEchoRedirectWithQuotes),
+    createTest('Succès après création répertoire', testEchoRedirectAfterCreatingParentDirectory)
 ];
