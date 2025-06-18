@@ -9,6 +9,7 @@ import { stages as commandPwdStages } from './stages/commands/pwd.stages.js';
 import { stages as commandEchoStages } from './stages/commands/echo.stages.js';
 import { stages as commandCatStages } from './stages/commands/cat.stages.js';
 import { stages as commandUseraddStages } from './stages/commands/useradd.stages.js';
+import { stages as commandUserdelStages } from './stages/commands/userdel.stages.js';
 import { stages as commandPasswdStages } from './stages/commands/passwd.stages.js';
 import { stages as commandSuStages } from './stages/commands/su.stages.js';
 import { stages as commandExitStages } from './stages/commands/exit.stages.js';
@@ -31,6 +32,7 @@ export async function stages(suites) {
     commandCatStages(suites);
     commandExportStages(suites);
     commandUseraddStages(suites);
+    commandUserdelStages(suites); 
     await commandPasswdStages(suites);
     commandSuStages(suites);
     commandExitStages(suites);
