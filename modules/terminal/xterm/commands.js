@@ -14,7 +14,7 @@ import { cmdId } from "../../../bin/id.js";
 import { cmdChmod } from "../../../bin/chmod.js";
 import { cmdChown } from "../../../bin/chown.js";
 import { cmdUserdel } from "../../../bin/userdel.js";
-import { cmdSudo } from "../../../bin/sudo.js";
+import { cmdSudo } from "../../../bin/sudo/sudo.js";
 import { cmdWhoami } from "../../../bin/whoami.js";
 
 export function cmd(cmd, args) {

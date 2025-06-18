@@ -172,7 +172,7 @@ export const testUtils = {
      */
     debugCaptures() {
         const captures = getCaptures();
-        console.log('DEBUG - Captures:', captures.map(c => `"${c.text}" [${c.className}]`));
+        console.log('DEBUG - Captures:', captures.map(c => c.text));
     },
 
     /**

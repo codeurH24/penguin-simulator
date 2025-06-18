@@ -17,6 +17,7 @@ import { stages as commandExportStages } from './stages/commands/export.stages.j
 import { stages as commandWhoamiStages } from './stages/commands/whoami.stages.js';
 import { stages as commandIdStages } from './stages/commands/id.stages.js';
 import { stages as commandGroupsStages } from './stages/commands/groups.stages.js';
+import { stages as commandSudoStages } from './stages/commands/sudo.stages.js';
 
 export async function stages(suites) {
     commandMkdirStages(suites);
@@ -37,4 +38,5 @@ export async function stages(suites) {
     commandWhoamiStages(suites);
     commandIdStages(suites);
     commandGroupsStages(suites);
+    await commandSudoStages(suites);
 }
