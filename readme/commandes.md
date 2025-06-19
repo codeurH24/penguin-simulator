@@ -20,6 +20,8 @@
 | [`export`](#export---exporter-des-variables) | Builtin | `[var[=value]]` | Exporter des variables | ✅ |
 | [`exit`](#exit---quitter) | Builtin | `[code]` | Quitter une session utilisateur | ✅ |
 | [`useradd`](#useradd---ajouter-un-utilisateur) | Externe | `-m`, `-d`, `-g`, `-s` | Ajouter un utilisateur | ✅ |
+| [`usermod`](#usermod---modifier-un-utilisateur) | Externe | `-G`, `-a` | Modifier un utilisateur | 🟠 |
+| [`groupadd`](#groupadd---ajouter-un-groupe) | Externe | - | Ajouter un groupe | 🟠 |
 | [`chmod`](#chmod---modifier-les-permissions) | Externe | `mode` | Modifier les permissions | ✅ |
 | [`su`](#su---changer-dutilisateur) | Externe | `[user]` | Changer d'utilisateur | ✅ |
 | [`passwd`](#passwd---changer-mot-de-passe) | Externe | `[user]` | Changer mot de passe | ✅ |
@@ -32,7 +34,7 @@
 - **Externe** : Commande implémentée dans `/bin/`
 - **Builtin** : Commande intégrée au shell dans `/lib/bash-builtins.js`
 - ✅ **Fonctionnel** : Implémentation complète et testée
-- 🟠 **Tests incomplets** : Fonctionnel mais tests absents ou incomplets
+- 🟠 **Partiellement fonctionnel** : Fonctionnel et / ou tests incomplets, voir même absents. 
 - 🔴 **Non fonctionnel** : Implémentation manquante ou défectueuse
 
 ---
@@ -247,6 +249,66 @@ chmod a=r fichier.txt         # Lecture pour tous, rien d'autre
 useradd -m john               # Créer avec home
 useradd -m -s /bin/bash alice # Avec shell spécifique
 useradd -m -d /home/custom bob # Home personnalisé
+```
+
+---
+
+### `usermod` - Modifier un utilisateur 🟠
+
+**Syntaxe :** `usermod [options] utilisateur`
+
+**Options supportées :**
+- `-G groupes` : Définir les groupes secondaires (remplace les existants)
+- `-a -G groupes` : Ajouter aux groupes secondaires (sans remplacer)
+
+**⚠️ STATUT : PARTIELLEMENT FONCTIONNEL**
+- Fonctionnalité principale : Ajout de groupes secondaires
+- Limitations : Autres options non implémentées
+
+**Exemples :**
+```bash
+usermod -G sudo,users alice   # Définir groupes secondaires
+usermod -a -G docker bob      # Ajouter au groupe docker
+```
+---
+
+### `groupadd` - Ajouter un groupe 🟠
+
+**Syntaxe :** `groupadd [options] GROUPE`
+
+**Options supportées :**
+- `-g, --gid GID` : Utiliser GID comme identifiant de groupe
+- `-h, --help` : Afficher l'aide et quitter
+- `-r, --system` : Créer un groupe système (GID 100-999)
+- `-f, --force` : Forcer la création (succès silencieux si groupe existe)
+
+**⚠️ STATUT : PARTIELLEMENT FONCTIONNEL**
+- **Fonctionnalités implémentées :**
+  - Création de groupes utilisateur et système
+  - Attribution automatique de GID ou GID personnalisé
+  - Validation des noms de groupe et plages de GID
+  - Gestion des permissions (nécessite root)
+  - Comportement silencieux en cas de succès (conforme Unix)
+
+**Restrictions :**
+- **Permissions** : Seul root peut exécuter cette commande
+- **Validation** : Noms de groupe limités à `[a-z][a-z0-9_-]*`
+- **GID** : Plage 0-65535, recommandations système (100-999) et utilisateur (≥1000)
+
+**Fonctionnalités :**
+- **Génération automatique de GID** : Attribution du prochain GID disponible
+- **Groupes système** : Avec `-r`, crée un groupe dans la plage système
+- **Validation robuste** : Vérification des doublons et contraintes
+- **Gestion d'erreurs** : Messages d'aide contextuels
+- **Conformité Debian** : Format `/etc/group` standard
+
+**Exemples :**
+```bash
+groupadd developers           # Créer groupe utilisateur (GID auto)
+groupadd -g 500 staff        # Créer avec GID spécifique
+groupadd -r services         # Créer groupe système
+groupadd -f existing         # Forcer (pas d'erreur si existe)
+sudo groupadd docker         # Avec privilèges élevés
 ```
 
 ---
