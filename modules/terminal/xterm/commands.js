@@ -18,6 +18,7 @@ import { cmdSudo } from "../../../bin/sudo/sudo.js";
 import { cmdWhoami } from "../../../bin/whoami.js";
 import { cmdGroupadd } from "../../../bin/groupadd/groupadd.js";
 import { cmdUsermod } from "../../../bin/usermod/usermod.js";
+import { cmdGrep } from "../../../bin/grep.js";
 
 export function cmd(cmd, args) {
     if (cmd === 'cd') {
@@ -91,6 +92,9 @@ export function cmd(cmd, args) {
     }
     else if (cmd === 'usermod') {
         cmdUsermod(args, this.context);
+    }
+    else if (cmd === 'grep') {
+        cmdGrep(args, this.context);
     }
     else {
         this.term.write(`bash: ${cmd}: commande introuvable\r\n`);

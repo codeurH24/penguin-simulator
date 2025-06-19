@@ -11,6 +11,7 @@ import { Input } from "./Input.js";
 import { Prompt } from "./Prompt.js";
 import { captureOutput, getCapture } from "./output.js";
 import { parseCommand } from "./commandParser.js";
+import { hasPipes, parsePipeline, executePipeline } from '../../../lib/bash-pipes.js';
 
 export class TerminalService {
 
@@ -19,22 +20,22 @@ export class TerminalService {
         this.term.write('$ ');
         this.term.write('\x1b[4h');
         this.term.terminalService = this;
-        
+
         this.context = null;
-        this.prompt = new Prompt(this); 
+        this.prompt = new Prompt(this);
         this.setContext(context);
-    
+
         this.term.open(document.getElementById('terminal'));
         this.keyboard = new Keyboard(this.term);
         this.history = new History();
         this.term.focus();
-    
+
         this.username = "";
         this.hostname = "";
         this.currentPath = '';
         this.uid = 0;
         this.gid = 0;
-        
+
         new Input(this);
         this.cmd = cmd.bind(this);
         this.captureOutput = captureOutput.bind(this);
@@ -51,7 +52,7 @@ export class TerminalService {
         return this.context;
     }
 
-    sendCommand(command=null) {
+    sendCommand(command = null) {
 
         if (command !== null) this.inputStr = command;
 
@@ -61,7 +62,7 @@ export class TerminalService {
         this.captureOutput();
         this.processCommand(this.inputStr);
         const out = this.getCapture();
-        
+
         if (out && out.trim()) {
             this.term.write(out);
         }
@@ -73,10 +74,13 @@ export class TerminalService {
         if (!this.term.passwordMode) {
             this.showPrompt();
         }
-        
+
         return out;
     }
-    
+
+    // Modification à apporter dans modules/terminal/xterm/terminal.js
+    // Remplacer la méthode processCommand existante
+
     processCommand(str) {
         const trimmedCommand = str.trim();
         if (!trimmedCommand) {
@@ -88,6 +92,13 @@ export class TerminalService {
             return;
         }
 
+        // Vérifier s'il y a des pipes dans la commande
+        if (this.hasPipes(trimmedCommand)) {
+            this.executePipeline(trimmedCommand);
+            return;
+        }
+
+        // Logique existante pour les commandes simples
         const parsedCommand = this.parseCommand(trimmedCommand);
         if (!parsedCommand) {
             this.term.write('\r\n');
@@ -103,6 +114,145 @@ export class TerminalService {
             executeWithRedirection(commandExecutor, redirections, this.context);
         } else {
             this.cmd(cmd, args);
+        }
+    }
+
+    // Nouvelle méthode pour vérifier les pipes
+    hasPipes(command) {
+        let inQuotes = false;
+        let quoteChar = '';
+
+        for (let i = 0; i < command.length; i++) {
+            const char = command[i];
+
+            if (!inQuotes) {
+                if (char === '"' || char === "'") {
+                    inQuotes = true;
+                    quoteChar = char;
+                } else if (char === '|') {
+                    return true;
+                }
+            } else {
+                if (char === quoteChar) {
+                    inQuotes = false;
+                    quoteChar = '';
+                }
+            }
+        }
+
+        return false;
+    }
+
+    // Nouvelle méthode pour parser les pipelines
+    parsePipeline(command) {
+        const pipeline = [];
+        let current = '';
+        let inQuotes = false;
+        let quoteChar = '';
+
+        for (let i = 0; i < command.length; i++) {
+            const char = command[i];
+
+            if (!inQuotes) {
+                if (char === '"' || char === "'") {
+                    inQuotes = true;
+                    quoteChar = char;
+                    current += char;
+                } else if (char === '|') {
+                    if (current.trim()) {
+                        pipeline.push(current.trim());
+                    }
+                    current = '';
+                } else {
+                    current += char;
+                }
+            } else {
+                current += char;
+                if (char === quoteChar) {
+                    inQuotes = false;
+                    quoteChar = '';
+                }
+            }
+        }
+
+        if (current.trim()) {
+            pipeline.push(current.trim());
+        }
+
+        return pipeline;
+    }
+
+    // Nouvelle méthode pour exécuter un pipeline
+    executePipeline(commandString) {
+        const pipeline = this.parsePipeline(commandString);
+
+        if (pipeline.length === 0) {
+            return;
+        }
+
+        if (pipeline.length === 1) {
+            // Une seule commande, utiliser la logique existante
+            this.processCommand(pipeline[0]);
+            return;
+        }
+
+        // Plusieurs commandes avec pipes
+        let currentOutput = '';
+
+        for (let i = 0; i < pipeline.length; i++) {
+            const isFirst = i === 0;
+            const isLast = i === pipeline.length - 1;
+            const commandString = pipeline[i];
+
+            // Parser la commande
+            const parsedCommand = this.parseCommand(commandString);
+            if (!parsedCommand) {
+                continue;
+            }
+
+            const { cmd, args } = parsedCommand;
+
+            // Pour les commandes intermédiaires, capturer leur sortie
+            if (!isLast) {
+                // Capturer la sortie de cette commande
+                let commandOutput = '';
+                const originalAddLine = this.context.addLine;
+
+                // Remplacer temporairement addLine pour capturer
+                this.context.addLine = (text) => {
+                    commandOutput += text;
+                    if (!text.endsWith('\n')) {
+                        commandOutput += '\n';
+                    }
+                };
+
+                // Si ce n'est pas la première commande, passer l'entrée
+                if (!isFirst) {
+                    this.context.stdin = currentOutput;
+                }
+
+                try {
+                    this.cmd(cmd, args);
+                } finally {
+                    // Restaurer addLine
+                    this.context.addLine = originalAddLine;
+                    delete this.context.stdin; // Nettoyer stdin
+                }
+
+                // Sauvegarder la sortie pour la commande suivante
+                currentOutput = commandOutput;
+            } else {
+                // Dernière commande : utiliser la sortie normale du terminal
+                if (!isFirst) {
+                    this.context.stdin = currentOutput;
+                }
+
+                try {
+                    this.cmd(cmd, args);
+                } finally {
+                    delete this.context.stdin; // Nettoyer stdin
+                }
+            }
         }
     }
 
@@ -147,7 +297,7 @@ export class TerminalService {
         this.term.write('\x1b[2J');
         this.term.write('\x1b[H');
     }
-    
+
     #_getTerminal() {
         return new Terminal({
             fontSize: 22,
