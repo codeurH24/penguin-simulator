@@ -12,22 +12,26 @@ export function exportFilesystemToJSON(fileSystem, paths) {
     const exported = {};
     
     pathsArray.forEach(targetPath => {
-        // Chemin exact
-        if (fileSystem[targetPath]) {
-            exported[targetPath] = fileSystem[targetPath];
-        }
-        
-        // Tous les sous-chemins
-        Object.keys(fileSystem).forEach(path => {
-            if (path.startsWith(targetPath + '/') || path === targetPath) {
-                exported[path] = fileSystem[path];
+        if (targetPath === '/') {
+            // Cas spécial : exporter tout le filesystem
+            Object.assign(exported, fileSystem);
+        } else {
+            // Chemin exact
+            if (fileSystem[targetPath]) {
+                exported[targetPath] = fileSystem[targetPath];
             }
-        });
+            
+            // Sous-chemins
+            Object.keys(fileSystem).forEach(path => {
+                if (path.startsWith(targetPath + '/')) {
+                    exported[path] = fileSystem[path];
+                }
+            });
+        }
     });
     
     return JSON.stringify(exported, null, 2);
 }
-
 /**
  * Importe des données JSON dans le filesystem
  * @param {Object} fileSystem - Le filesystem à modifier
