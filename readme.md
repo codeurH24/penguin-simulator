@@ -21,7 +21,7 @@ Tapez `help` dans le terminal pour commencer !
 | **Comprendre l'architecture du projet** | [🏗️ Structure technique](readme/structure.md) |
 | **Système de backup filesystem** | [💾 Backup et export](readme/backup-filesystem.md) |
 | **Système de backup sessions utilisateur** | [👤 Sessions utilisateur](readme/backup-user-session.md) |
-| **Documentation complète** | [📖 README complet](readme/readme.full.md) |
+| **Logs et statistiques** | [📊 Guide des logs](readme/logging-usage.md) |
 | **Signaler un problème** | [🐛 Issues GitHub](https://github.com/codeurH24/penguin-simulator/issues) |
 
 ---
