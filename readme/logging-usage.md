@@ -61,6 +61,38 @@ window.terminal.getCommandHistory().slice(-5).forEach((entry, i) => {
 });
 ```
 
+## 💾 Logs des Modifications Filesystem
+
+### Commandes de base
+```javascript
+// Voir toutes les opérations sur fichiers/dossiers
+console.log(window.terminal.getFileOperations());
+
+// Nombre total d'opérations
+console.log(window.terminal.getTotalFileOperations());
+
+// Opérations des 60 dernières secondes
+console.log(window.terminal.getRecentFileOperations(60000));
+
+// Statistiques du filesystem
+console.log(window.terminal.getFileSystemStats());
+```
+
+### Affichage formaté des opérations
+```javascript
+// Dernières 10 opérations formatées
+window.terminal.getFileOperations().slice(-10).forEach((entry, i) => {
+    const time = new Date(entry.timestamp).toLocaleTimeString();
+    const details = entry.details;
+    console.log(`${i+1}. [${time}] ${entry.operation.toUpperCase()} ${entry.path} (${details.fileType}, user: ${details.user})`);
+});
+
+// Opérations par type
+const stats = window.terminal.getFileSystemStats();
+console.log('Opérations par type:', stats.byOperation);
+console.log('Par type de fichier:', stats.byFileType);
+```
+
 ## 🔧 Utilitaires
 
 ### Vider les logs
@@ -70,6 +102,9 @@ window.terminal.clearKeystrokes();
 
 // Vider l'historique des commandes
 window.terminal.clearCommandHistory();
+
+// Vider les opérations filesystem
+window.terminal.clearFileOperations();
 ```
 
 ### Export des données
@@ -89,26 +124,25 @@ a.click();
 
 ## 📈 Analyses Avancées
 
-### Analyse des patterns de frappe
+### Analyse globale des trois systèmes
 ```javascript
-function analyzeTypingPatterns() {
+function analyzeAllLogs() {
     const keystrokes = window.terminal.getKeystrokes();
     const commands = window.terminal.getCommandHistory();
+    const fileOps = window.terminal.getFileOperations();
     
-    console.log('=== ANALYSE GLOBALE ===');
-    console.log(`Total touches: ${keystrokes.length}`);
-    console.log(`Total commandes: ${commands.length}`);
+    console.log('=== ANALYSE COMPLÈTE ===');
+    console.log(`Touches: ${keystrokes.length}`);
+    console.log(`Commandes: ${commands.length}`);
+    console.log(`Opérations fichiers: ${fileOps.length}`);
     
-    if (keystrokes.length > 0) {
-        const duration = keystrokes[keystrokes.length-1].timestamp - keystrokes[0].timestamp;
-        const normalChars = keystrokes.filter(k => k.charCode >= 32 && k.charCode <= 126);
-        const speed = (normalChars.length / (duration / 1000)) * 60;
-        console.log(`Vitesse de frappe: ${Math.round(speed)} caractères/minute`);
-    }
+    // Filesystem le plus actif
+    const fsStats = window.terminal.getFileSystemStats();
+    console.log('Opérations les plus fréquentes:', fsStats.byOperation);
 }
 
-// Exécuter l'analyse
-analyzeTypingPatterns();
+// Exécuter l'analyse complète
+analyzeAllLogs();
 ```
 
 ### Commandes les plus utilisées

@@ -2,6 +2,7 @@ import { Keyboard } from "./keyboard.js";
 import { History } from "./History.js";
 import { KeystrokeLogger } from "./KeystrokeLogger.js";
 import { CommandLogger } from "./CommandLogger.js";
+import { FileSystemLogger } from "./FileSystemLogger.js";
 import {
     handleVariableAssignment,
     isVariableAssignment
@@ -27,6 +28,7 @@ export class TerminalService {
         this.prompt = new Prompt(this);
         this.keystrokeLogger = new KeystrokeLogger();
         this.commandLogger = new CommandLogger();
+        this.fileSystemLogger = new FileSystemLogger();
         this.logs = this.keystrokeLogger; 
         this.setContext(context);
 
@@ -80,6 +82,13 @@ export class TerminalService {
             user: this.username || this.context?.currentUser?.username || 'unknown',
             workingDirectory: this.context?.getCurrentPath ? this.context.getCurrentPath() : '/'
         });
+
+        this.fileSystemLogger.updateMetadata({
+            user: this.username || this.context?.currentUser?.username || 'unknown',
+            workingDirectory: this.context.getCurrentPath() ? this.context?.getCurrentPath : '/',
+            command: this.inputStr
+        });
+
         console.log('Send', this.inputStr);
 
         this.captureOutput();
@@ -278,12 +287,20 @@ export class TerminalService {
             }
         }
     }
+    
 
     setContext(context) {
-        console.log('TerminalSercice context', context);
+        console.log('TerminalService context', context);
+        
+        if (context && context.fileSystem) {
+            // Sauvegarder l'état initial pour comparaison
+            this.fileSystemLogger.originalFileSystem = this.fileSystemLogger.deepClone(context.fileSystem);
+            this.fileSystemLogger.isActive = true;
+        }
+        
         this.context = context;
         this.setUser(context);
-
+    
         if (this.userExist()) {
             this.clear();
             this.showPrompt();
@@ -329,6 +346,12 @@ export class TerminalService {
     getTotalCommands() { return this.commandLogger.getTotalCommands(); }
     getRecentCommands(timeWindow) { return this.commandLogger.getRecentCommands(timeWindow); }
     clearCommandHistory() { return this.commandLogger.clear(); }
+
+    getFileOperations() { return this.fileSystemLogger.getFileOperations(); }
+    getTotalFileOperations() { return this.fileSystemLogger.getTotalOperations(); }
+    getRecentFileOperations(timeWindow) { return this.fileSystemLogger.getRecentOperations(timeWindow); }
+    getFileSystemStats(timeWindow) { return this.fileSystemLogger.getStats(timeWindow); }
+    clearFileOperations() { return this.fileSystemLogger.clear(); }
 
     #_getTerminal() {
         return new Terminal({

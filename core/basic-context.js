@@ -20,6 +20,24 @@ export function addContextMethods(context) {
     };
 
     context.saveFileSystem = function () {
+        // Capturer l'état avant sauvegarde pour le logging
+        if (context.terminal?.terminalService?.fileSystemLogger) {
+            const logger = context.terminal.terminalService.fileSystemLogger;
+            if (logger.originalFileSystem && logger.isActive) {
+                logger.compareAndLog(
+                    logger.originalFileSystem, 
+                    context.fileSystem,
+                    {
+                        user: context.currentUser?.username || 'unknown',
+                        workingDirectory: context.getCurrentPath() || '/',
+                        command: context.terminal?.terminalService?.inputStr || null
+                    }
+                );
+                // Mettre à jour l'état de référence
+                logger.originalFileSystem = logger.deepClone(context.fileSystem);
+            }
+        }
+        
         return saveContextToDB(context);
     };
 
