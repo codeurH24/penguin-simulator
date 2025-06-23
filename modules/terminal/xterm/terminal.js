@@ -1,6 +1,7 @@
 import { Keyboard } from "./keyboard.js";
 import { History } from "./History.js";
 import { KeystrokeLogger } from "./KeystrokeLogger.js";
+import { CommandLogger } from "./CommandLogger.js";
 import {
     handleVariableAssignment,
     isVariableAssignment
@@ -25,6 +26,7 @@ export class TerminalService {
         this.context = null;
         this.prompt = new Prompt(this);
         this.keystrokeLogger = new KeystrokeLogger();
+        this.commandLogger = new CommandLogger();
         this.logs = this.keystrokeLogger; 
         this.setContext(context);
 
@@ -74,6 +76,10 @@ export class TerminalService {
         if (command !== null) this.inputStr = command;
 
         this.history.add(this.inputStr);
+        this.commandLogger.logCommand(this.inputStr, {
+            user: this.username || this.context?.currentUser?.username || 'unknown',
+            workingDirectory: this.context?.getCurrentPath ? this.context.getCurrentPath() : '/'
+        });
         console.log('Send', this.inputStr);
 
         this.captureOutput();
@@ -318,6 +324,11 @@ export class TerminalService {
     getKeystrokes() { return this.keystrokeLogger.getKeystrokes(); }
     getTotalKeystrokes() { return this.keystrokeLogger.getTotalKeystrokes(); }
     clearKeystrokes() { return this.keystrokeLogger.clear(); }
+
+    getCommandHistory() { return this.commandLogger.getCommandHistory(); }
+    getTotalCommands() { return this.commandLogger.getTotalCommands(); }
+    getRecentCommands(timeWindow) { return this.commandLogger.getRecentCommands(timeWindow); }
+    clearCommandHistory() { return this.commandLogger.clear(); }
 
     #_getTerminal() {
         return new Terminal({
