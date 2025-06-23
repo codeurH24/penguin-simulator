@@ -15,7 +15,7 @@ import { hasPipes, parsePipeline, executePipeline } from '../../../lib/bash-pipe
 
 export class TerminalService {
 
-    constructor(context = null) {
+    constructor(context = null, terminalId=null) {
         this.term = this.#_getTerminal();
         this.term.write('$ ');
         this.term.write('\x1b[4h');
@@ -25,7 +25,12 @@ export class TerminalService {
         this.prompt = new Prompt(this);
         this.setContext(context);
 
-        this.term.open(document.getElementById('terminal'));
+        const teminalElement = (terminalId === null) ? 
+            document.getElementById('terminal')
+            :
+            document.getElementById(terminalId);
+
+        this.term.open(teminalElement);
         this.keyboard = new Keyboard(this.term);
         this.history = new History();
         this.term.focus();
