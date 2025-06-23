@@ -1,5 +1,6 @@
 import { Keyboard } from "./keyboard.js";
 import { History } from "./History.js";
+import { KeystrokeLogger } from "./KeystrokeLogger.js";
 import {
     handleVariableAssignment,
     isVariableAssignment
@@ -23,6 +24,8 @@ export class TerminalService {
 
         this.context = null;
         this.prompt = new Prompt(this);
+        this.keystrokeLogger = new KeystrokeLogger();
+        this.logs = this.keystrokeLogger; 
         this.setContext(context);
 
         const teminalElement = (terminalId === null) ? 
@@ -34,6 +37,7 @@ export class TerminalService {
         this.keyboard = new Keyboard(this.term);
         this.history = new History();
         this.term.focus();
+        this._setupKeystrokeLogging();
 
         this.username = "";
         this.hostname = "";
@@ -46,6 +50,14 @@ export class TerminalService {
         this.captureOutput = captureOutput.bind(this);
         this.getCapture = getCapture.bind(this);
         this.parseCommand = parseCommand.bind(this);
+    }
+
+    _setupKeystrokeLogging() {
+        this.term.onData((data) => {
+            this.keystrokeLogger.logKeystroke(data, {
+                user: this.context?.currentUser?.username || 'unknown'
+            });
+        });
     }
 
     showPrompt() {
@@ -302,6 +314,10 @@ export class TerminalService {
         this.term.write('\x1b[2J');
         this.term.write('\x1b[H');
     }
+
+    getKeystrokes() { return this.keystrokeLogger.getKeystrokes(); }
+    getTotalKeystrokes() { return this.keystrokeLogger.getTotalKeystrokes(); }
+    clearKeystrokes() { return this.keystrokeLogger.clear(); }
 
     #_getTerminal() {
         return new Terminal({
