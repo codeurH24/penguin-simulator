@@ -19,6 +19,7 @@ import { cmdWhoami } from "../../../bin/whoami.js";
 import { cmdGroupadd } from "../../../bin/groupadd/groupadd.js";
 import { cmdUsermod } from "../../../bin/usermod/usermod.js";
 import { cmdGrep } from "../../../bin/grep.js";
+import { cmdCp } from "../../../bin/cp.js";
 
 export function cmd(cmd, args) {
     if (cmd === 'cd') {
@@ -95,6 +96,9 @@ export function cmd(cmd, args) {
     }
     else if (cmd === 'grep') {
         cmdGrep(args, this.context);
+    }
+    else if (cmd === 'cp') {
+        cmdCp(args, this.context);
     }
     else {
         this.term.write(`bash: ${cmd}: commande introuvable\r\n`);
