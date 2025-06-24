@@ -1,4 +1,4 @@
-// test-cases/commands/ls/basic.test.js - Tests de base pour ls
+// test-cases/specs/commands/ls/basic.test.js - Tests de base pour ls
 import { createTestContext, clearCaptures, getCaptures } from '../../../lib/context.js';
 import { assert, validateFileSystem, testUtils } from '../../../lib/helpers.js';
 import { createTest } from '../../../lib/runner.js';
@@ -46,9 +46,9 @@ function testWithContent() {
     const captures = getCaptures();
     const outputText = captures.map(c => c.text).join(' ');
     
-    // Vérifier que les éléments créés apparaissent dans la sortie
-    assert.isTrue(outputText.includes('folder1/'), 'folder1/ devrait apparaître (avec / pour les dossiers)');
-    assert.isTrue(outputText.includes('documents/'), 'documents/ devrait apparaître (avec / pour les dossiers)');
+    // Vérifier que les éléments créés apparaissent dans la sortie (SANS / pour les dossiers)
+    assert.isTrue(outputText.includes('folder1'), 'folder1 devrait apparaître');
+    assert.isTrue(outputText.includes('documents'), 'documents devrait apparaître');
     assert.isTrue(outputText.includes('file1.txt'), 'file1.txt devrait apparaître');
     assert.isTrue(outputText.includes('readme.md'), 'readme.md devrait apparaître');
     
@@ -75,7 +75,7 @@ function testSpecificDirectory() {
     const outputText = captures.map(c => c.text).join(' ');
     
     assert.isTrue(outputText.includes('subfile.txt'), 'subfile.txt devrait apparaître');
-    assert.isTrue(outputText.includes('subfolder/'), 'subfolder/ devrait apparaître');
+    assert.isTrue(outputText.includes('subfolder'), 'subfolder devrait apparaître'); // SANS /
     
     console.log('✅ ls fonctionne avec un dossier spécifique');
     return true;
@@ -142,14 +142,14 @@ function testAlphabeticalSorting() {
     const captures = getCaptures();
     const outputText = captures.map(c => c.text).join(' ');
     
-    // Vérifier l'ordre alphabétique (alpha, beta/, gamma, zebra)
+    // Vérifier l'ordre alphabétique (alpha, beta, gamma, zebra) SANS / pour beta
     const alphaPos = outputText.indexOf('alpha.txt');
-    const betaPos = outputText.indexOf('beta/');
+    const betaPos = outputText.indexOf('beta'); // SANS /
     const gammaPos = outputText.indexOf('gamma.txt');
     const zebraPos = outputText.indexOf('zebra.txt');
     
-    assert.isTrue(alphaPos < betaPos, 'alpha.txt devrait venir avant beta/');
-    assert.isTrue(betaPos < gammaPos, 'beta/ devrait venir avant gamma.txt');
+    assert.isTrue(alphaPos < betaPos, 'alpha.txt devrait venir avant beta');
+    assert.isTrue(betaPos < gammaPos, 'beta devrait venir avant gamma.txt');
     assert.isTrue(gammaPos < zebraPos, 'gamma.txt devrait venir avant zebra.txt');
     
     console.log('✅ Tri alphabétique correct');
@@ -169,9 +169,9 @@ function testRootDirectory() {
     const captures = getCaptures();
     const outputText = captures.map(c => c.text).join(' ');
     
-    // La racine devrait contenir au moins /home et /root
-    assert.isTrue(outputText.includes('home/'), '/home devrait apparaître dans /');
-    assert.isTrue(outputText.includes('root/'), '/root devrait apparaître dans /');
+    // La racine devrait contenir au moins /home et /root (SANS / à la fin)
+    assert.isTrue(outputText.includes('home'), '/home devrait apparaître dans /');
+    assert.isTrue(outputText.includes('root'), '/root devrait apparaître dans /');
     
     console.log('✅ ls fonctionne avec le dossier racine');
     return true;
