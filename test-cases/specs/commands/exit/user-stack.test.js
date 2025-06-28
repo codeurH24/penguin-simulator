@@ -6,7 +6,7 @@ import { cmdSu } from '../../../../bin/su.js';
 import { cmdExit } from '../../../../lib/bash-builtins.js';
 import { cmdUseradd } from '../../../../bin/useradd.js';
 import { cmdPasswd } from '../../../../bin/passwd.js';
-import { cmdMkdir } from '../../../../bin/mkdir.js';
+import { cmdMkdir } from '../../../../bin/mkdir/mkdir.js';
 import { cmdCd } from '../../../../lib/bash-builtins.js';
 import { getUserStackSize, clearUserStack } from '../../../../modules/users/user-stack.js';
 

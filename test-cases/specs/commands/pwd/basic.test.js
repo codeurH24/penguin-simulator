@@ -4,7 +4,7 @@ import { assert, validateFileSystem, testUtils } from '../../../lib/helpers.js';
 import { createTest } from '../../../lib/runner.js';
 import { cmdPwd } from '../../../../lib/bash-builtins.js';
 import { cmdCd } from '../../../../lib/bash-builtins.js';
-import { cmdMkdir } from '../../../../bin/mkdir.js';
+import { cmdMkdir } from '../../../../bin/mkdir/mkdir.js';
 
 /**
  * Test de base : pwd affiche le répertoire courant

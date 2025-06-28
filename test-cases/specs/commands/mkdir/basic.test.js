@@ -2,7 +2,7 @@
 import { createTestContext, clearCaptures, getCaptures } from '../../../lib/context.js';
 import { assert, validateFileSystem, testUtils } from '../../../lib/helpers.js';
 import { createTest } from '../../../lib/runner.js';
-import { cmdMkdir } from '../../../../bin/mkdir.js';
+import { cmdMkdir } from '../../../../bin/mkdir/mkdir.js';
 
 /**
  * Test de création d'un dossier simple

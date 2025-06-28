@@ -5,7 +5,7 @@ import { createTest } from '../../../lib/runner.js';
 import { cmdSu } from '../../../../bin/su.js';
 import { cmdUseradd } from '../../../../bin/useradd.js';
 import { cmdPasswd } from '../../../../bin/passwd.js';
-import { cmdMkdir } from '../../../../bin/mkdir.js';
+import { cmdMkdir } from '../../../../bin/mkdir/mkdir.js';
 import { cmdCd } from '../../../../lib/bash-builtins.js';
 
 /**

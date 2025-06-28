@@ -3,7 +3,7 @@ import { createTestContext, clearCaptures, getCaptures } from '../../../lib/cont
 import { assert, validateFileSystem, testUtils } from '../../../lib/helpers.js';
 import { createTest } from '../../../lib/runner.js';
 import { cmdRm } from '../../../../bin/rm.js';
-import { cmdMkdir } from '../../../../bin/mkdir.js';
+import { cmdMkdir } from '../../../../bin/mkdir/mkdir.js';
 import { cmdTouch } from '../../../../bin/touch.js';
 
 /**

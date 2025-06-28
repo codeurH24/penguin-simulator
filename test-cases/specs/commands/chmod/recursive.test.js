@@ -5,7 +5,7 @@ import { createTestContext, clearCaptures, getCaptures } from '../../../lib/cont
 import { assert, validateFileSystem, testUtils } from '../../../lib/helpers.js';
 import { createTest } from '../../../lib/runner.js';
 import { cmdChmod } from '../../../../bin/chmod.js';
-import { cmdMkdir } from '../../../../bin/mkdir.js';
+import { cmdMkdir } from '../../../../bin/mkdir/mkdir.js';
 
 /**
  * Test 1: Option -R sur structure de répertoires simple

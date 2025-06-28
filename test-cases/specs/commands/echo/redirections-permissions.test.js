@@ -13,7 +13,7 @@ import { cmdPasswd } from '../../../../bin/passwd.js';
 import { cmdSu } from '../../../../bin/su.js';
 import { cmdExit } from '../../../../lib/bash-builtins.js';
 import { cmdChmod } from '../../../../bin/chmod.js';
-import { cmdMkdir } from '../../../../bin/mkdir.js';
+import { cmdMkdir } from '../../../../bin/mkdir/mkdir.js';
 import { clearUserStack } from '../../../../modules/users/user-stack.js';
 
 /**

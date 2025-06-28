@@ -3,7 +3,7 @@ import { createTestContext, clearCaptures, getCaptures } from '../../../lib/cont
 import { assert, validateFileSystem, testUtils } from '../../../lib/helpers.js';
 import { createTest } from '../../../lib/runner.js';
 import { cmdCd } from '../../../../lib/bash-builtins.js';
-import { cmdMkdir } from '../../../../bin/mkdir.js';
+import { cmdMkdir } from '../../../../bin/mkdir/mkdir.js';
 import { cmdUseradd } from '../../../../bin/useradd.js';
 import { cmdPasswd } from '../../../../bin/passwd.js';
 import { cmdSu } from '../../../../bin/su.js';
