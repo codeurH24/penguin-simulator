@@ -1,6 +1,6 @@
 import { cmdPwd, cmdCd, cmdExport, cmdExit } from "../../../lib/bash-builtins.js";
 import { cmdLs } from "../../../bin/ls.js";
-import { cmdMkdir } from "../../../bin/mkdir.js";
+import { cmdMkdir } from "../../../bin/mkdir/mkdir.js";
 import { cmdTouch } from "../../../bin/touch.js";
 import { cmdEcho } from "../../../bin/echo.js";
 import { cmdCat } from "../../../bin/cat.js";

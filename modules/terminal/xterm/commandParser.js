@@ -1,10 +1,11 @@
 import { parseCommandLine, parseRedirections } from "../../../lib/bash-parser.js";
 import { substituteVariablesInArgs } from "../../../lib/bash-variables.js";
 
-export function parseCommand(trimmedCommand) {
 
+export function parseCommand(trimmedCommand) {
     this.context.terminal = this.term;
     
+    // Le parseCommandLine fait maintenant automatiquement l'expansion des braces
     const parts = parseCommandLine(trimmedCommand);
     if (parts.length === 0) {
         return null;
