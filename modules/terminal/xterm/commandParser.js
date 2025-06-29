@@ -1,6 +1,5 @@
-import { parseCommandLine, parseRedirections } from "../../../lib/bash-parser.js";
+import { parseCommandLine, parseRedirections, expandWildcards } from "../../../lib/bash-parser.js";
 import { substituteVariablesInArgs } from "../../../lib/bash-variables.js";
-
 
 export function parseCommand(trimmedCommand) {
     this.context.terminal = this.term;
@@ -19,6 +18,7 @@ export function parseCommand(trimmedCommand) {
     const cmd = cmdParts[0];
     let args = cmdParts.slice(1);
     args = substituteVariablesInArgs(args, this.context);
+    args = expandWildcards(args, this.context.fileSystem, this.context.getCurrentPath());
 
     return { cmd, args, redirections };
 }

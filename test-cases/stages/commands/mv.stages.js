@@ -1,11 +1,12 @@
 // test-cases/stages/commands/mv.stages.js
-// Stage pour les tests mv avec progression logique
+// Stage pour les tests mv avec progression logique incluant les wildcards
 
 import { runTestSuite } from '../../lib/runner.js';
 import { mvBasicTests } from '../../specs/commands/mv/basic.test.js';
 import { mvDebianTests } from '../../specs/commands/mv/debian-compliant.test.js';
 import { mvPermissionsTests } from '../../specs/commands/mv/permissions.test.js';
 import { mvEdgeCasesTests } from '../../specs/commands/mv/edge-cases.test.js';
+import { mvWildcardTests } from '../../specs/commands/mv/wildcard.test.js';
 
 export function stages(suites) {
 
@@ -23,6 +24,11 @@ export function stages(suites) {
     console.log('\n🔒 Tests des permissions pour mv...');
     const mvPermissionsResults = runTestSuite('mv - Tests des permissions', mvPermissionsTests);
     suites.push(mvPermissionsResults);
+    
+    // Tests des wildcards (PATTERNS - expansion shell)
+    console.log('\n🌟 Tests des wildcards pour mv...');
+    const mvWildcardResults = runTestSuite('mv - Tests des wildcards', mvWildcardTests);
+    suites.push(mvWildcardResults);
     
     // Tests des cas limites (ROBUSTESSE - situations extrêmes)
     console.log('\n⚡ Tests des cas limites pour mv...');

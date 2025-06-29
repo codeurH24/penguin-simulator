@@ -4,7 +4,7 @@
 import { createTestContext, clearCaptures, getCaptures } from '../../../lib/context.js';
 import { assert, validateFileSystem, testUtils } from '../../../lib/helpers.js';
 import { createTest } from '../../../lib/runner.js';
-import { cmdMv } from '../../../../bin/mv.js';
+import { cmdMv } from '../../../../bin/mv/mv.js';
 import { cmdMkdir } from '../../../../bin/mkdir/mkdir.js';
 import { cmdTouch } from '../../../../bin/touch.js';
 import { cmdChmod } from '../../../../bin/chmod.js';

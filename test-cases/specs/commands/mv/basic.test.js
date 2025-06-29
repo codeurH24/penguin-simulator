@@ -2,7 +2,7 @@
 import { createTestContext, clearCaptures, getCaptures } from '../../../lib/context.js';
 import { assert, validateFileSystem, testUtils } from '../../../lib/helpers.js';
 import { createTest } from '../../../lib/runner.js';
-import { cmdMv } from '../../../../bin/mv.js';
+import { cmdMv } from '../../../../bin/mv/mv.js';
 
 /**
  * Vérifie si une erreur correspond aux messages d'erreur attendus de mv

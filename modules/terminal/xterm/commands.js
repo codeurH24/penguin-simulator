@@ -4,7 +4,7 @@ import { cmdMkdir } from "../../../bin/mkdir/mkdir.js";
 import { cmdTouch } from "../../../bin/touch.js";
 import { cmdEcho } from "../../../bin/echo.js";
 import { cmdCat } from "../../../bin/cat.js";
-import { cmdMv } from "../../../bin/mv.js";
+import { cmdMv } from "../../../bin/mv/mv.js";
 import { cmdPasswd } from "../../../bin/passwd.js";
 import { cmdRm } from "../../../bin/rm.js";
 import { cmdSu } from "../../../bin/su.js";
